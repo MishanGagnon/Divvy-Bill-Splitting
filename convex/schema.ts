@@ -10,4 +10,10 @@ export default defineSchema({
   numbers: defineTable({
     value: v.number(),
   }),
+  gridCells: defineTable({
+    index: v.number(),
+    markedBy: v.optional(v.string()),
+    markedByName: v.optional(v.string()),
+    markedAt: v.optional(v.number()),
+  }).index("byIndex", ["index"]),
 });

@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Inter } from "next/font/google";
+import { useEffect } from "react";
 
 export default function Home() {
   return (
@@ -37,9 +39,77 @@ export default function Home() {
         <SignOutButton />
       </header>
       <main className="p-8 flex flex-col gap-8">
-        <Content />
+        <InteractiveGrid />
+        {/* <Content /> */}
       </main>
     </>
+  );
+}
+
+function InteractiveGrid() {
+  return (
+    <div className="max-w-3xl mx-auto w-full flex flex-col gap-6">
+      <div>
+
+        <h2 className="font-bold text-2xl text-slate-800 dark:text-slate-200">
+          Shared 3×3 Grid
+        </h2>
+        <p className="text-slate-600 dark:text-slate-400 mt-2">
+          Click a tile to mark it. Everyone sees updates in real time. Hover a
+          marked tile to see who marked it.
+        </p>
+      </div>
+      <Grid />
+    </div>
+  )
+}
+
+function Grid() {
+  const cells = useQuery(api.grid.list);
+  const init = useMutation(api.grid.init);
+  const toggle = useMutation(api.grid.toggle);
+
+  // Optional: for "mine" styling
+  const { isAuthenticated } = useConvexAuth();
+
+  useEffect(() => {
+    void init({});
+  }, [init]);
+
+  if (!cells) {
+    return <div className="text-slate-600 dark:text-slate-400">Loading…</div>;
+  }
+
+  return (
+    <div className="grid grid-cols-3 gap-6 w-fit">
+      {cells.map((cell) => {
+        const marked = Boolean(cell.markedBy);
+        return (
+          <button
+            key={cell._id}
+            className={[
+              "group relative w-44 h-28 rounded-2xl border-4 transition-all duration-200",
+              "hover:scale-105 active:scale-95",
+              marked
+                ? "border-slate-900 dark:border-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
+                : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800",
+              "shadow-sm hover:shadow-lg",
+              "flex items-center justify-center",
+            ].join(" ")}
+            onClick={() => void toggle({ index: cell.index })}
+            disabled={!isAuthenticated}
+          >
+            {marked && cell.markedByName && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-br from-blue-400/10 to-purple-400/10 backdrop-blur-sm">
+                <span className="text-center font-semibold text-slate-800 dark:text-slate-100 text-lg px-3 py-2">
+                  {cell.markedByName}
+                </span>
+              </div>
+            )}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
