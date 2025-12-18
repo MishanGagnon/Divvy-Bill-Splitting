@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 // List all 9 cells in order (realtime)
 export const list = query({
@@ -19,22 +20,20 @@ export const list = query({
 export const toggle = mutation({
     args: { index: v.number() },
     handler: async (ctx, { index }) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
+
+        // This now uses Convex approved method to find user info
+        // which is tto first find user ID then query the users table
+        const userId = await getAuthUserId(ctx);
+        if (!userId) {
             throw new Error("Not authenticated");
         }
+        
+        const user = await ctx.db.get("users", userId);
 
-        const userId = identity.subject; // stable unique id from auth
-        console.log("User ID:", userId);
-
-        console.log("IDENTITY", identity);
-
-        const userName =
-            identity.name ??
-            identity.email ??
-            identity.tokenIdentifier ??
-            identity.subject;
-        console.log("User Name:", identity.name);
+        const userName = user?.name;
+        if (!userName) {
+            throw new Error("User not found");
+        }
 
         // Fetch the cell
         const cell = await ctx.db
