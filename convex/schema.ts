@@ -10,4 +10,9 @@ export default defineSchema({
   numbers: defineTable({
     value: v.number(),
   }),
+  images: defineTable({
+    storageId: v.id("_storage"),
+    uploadedBy: v.id("users"),
+    uploadedAt: v.number(),
+  }).index("by_user", ["uploadedBy"]),
 });
