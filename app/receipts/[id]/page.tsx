@@ -26,8 +26,25 @@ export default function ReceiptDetailPage() {
   const parseReceipt = useAction(api.receiptActions.triggerParseReceiptByReceiptId);
   const toggleClaim = useMutation(api.receipt.toggleClaimItem);
   const joinSplit = useMutation(api.receipt.joinReceipt);
+  const getOrCreateShareCode = useMutation(api.share.getOrCreateShareCode);
 
   const [isJoining, setIsJoining] = useState(false);
+  const [shareCode, setShareCode] = useState<string | null>(null);
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
+
+  const handleShareClick = async () => {
+    setIsGeneratingCode(true);
+    try {
+      const code = await getOrCreateShareCode({ receiptId });
+      setShareCode(code);
+      setIsShareModalOpen(true);
+    } catch (error) {
+      console.error("Failed to generate share code:", error);
+      toast.error("Failed to generate share code");
+    } finally {
+      setIsGeneratingCode(false);
+    }
+  };
 
   const handleParseReceipt = async () => {
     setIsParsing(true);
@@ -155,8 +172,8 @@ export default function ReceiptDetailPage() {
       <ShareModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
-        url={`${getBaseUrl()}/receipts/${receiptId}`}
-        shareCode="ABCD"
+        url={`${getBaseUrl()}/join/${shareCode || ""}`}
+        shareCode={shareCode || "...."}
       />
 
       {/* Join Modal */}
@@ -203,10 +220,11 @@ export default function ReceiptDetailPage() {
                 [ {"<<"} BACK ]
               </Link>
               <button
-                onClick={() => setIsShareModalOpen(true)}
-                className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer"
+                onClick={handleShareClick}
+                disabled={isGeneratingCode}
+                className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer disabled:opacity-30"
               >
-                [ SHARE ]
+                {isGeneratingCode ? "[ ... ]" : "[ SHARE ]"}
               </button>
             </div>
             <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-center">

@@ -15,6 +15,7 @@ import type * as myFunctions from "../myFunctions.js";
 import type * as prompts from "../prompts.js";
 import type * as receipt from "../receipt.js";
 import type * as receiptActions from "../receiptActions.js";
+import type * as share from "../share.js";
 
 import type {
   ApiFromModules,
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   prompts: typeof prompts;
   receipt: typeof receipt;
   receiptActions: typeof receiptActions;
+  share: typeof share;
 }>;
 
 /**

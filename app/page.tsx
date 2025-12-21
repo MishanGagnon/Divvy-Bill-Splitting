@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -103,7 +104,48 @@ function Content() {
 
       <div className="dotted-line"></div>
 
+      <JoinCodeInput />
+
+      <div className="dotted-line"></div>
+
       <ImageUpload />
+    </div>
+  );
+}
+
+function JoinCodeInput() {
+  const [code, setCode] = useState("");
+  const router = useRouter();
+
+  const handleJoin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (code.length === 4) {
+      router.push(`/join/${code.toUpperCase()}`);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <h3 className="text-xs font-bold uppercase tracking-widest text-center">
+        --- Join a Split ---
+      </h3>
+      <form onSubmit={handleJoin} className="flex gap-2">
+        <input
+          type="text"
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 4))}
+          placeholder="ENTER CODE (E.G. TACO)"
+          className="flex-1 bg-paper border-2 border-ink px-4 py-3 text-xs font-bold uppercase tracking-widest placeholder:opacity-30 focus:outline-none"
+          maxLength={4}
+        />
+        <button
+          type="submit"
+          disabled={code.length !== 4}
+          className="bg-ink text-paper px-6 py-3 text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-50"
+        >
+          JOIN
+        </button>
+      </form>
     </div>
   );
 }

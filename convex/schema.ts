@@ -41,6 +41,15 @@ export default defineSchema({
     .index("by_host", ["hostUserId"])
     .index("by_joinCode", ["joinCode"]),
 
+  // Share Codes Table for temporary links
+  shareCodes: defineTable({
+    receiptId: v.id("receipts"),
+    code: v.string(), // e.g., "TACO"
+    expiresAt: v.number(), // Timestamp
+  })
+    .index("by_code", ["code"])
+    .index("by_receiptId", ["receiptId"]),
+
   // Receipt Line Items Table
   // Each line item is a single item on the receipt
   receiptItems: defineTable({

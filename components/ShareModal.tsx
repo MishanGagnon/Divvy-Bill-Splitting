@@ -34,12 +34,18 @@ export function ShareModal({ isOpen, onClose, url, shareCode }: ShareModalProps)
           </h2>
           <p className="text-xs uppercase opacity-60 leading-relaxed">
             Scan the QR code or share the code below to join this split.
+            <br />
+            <span className="text-[9px] italic font-bold">Expires in 30 minutes</span>
           </p>
         </div>
 
         <div className="flex flex-col items-center gap-4 py-4">
-          <div className="p-4 border-2 border-ink bg-white">
-            <QRCodeSVG value={url} size={180} />
+          <div className="p-4 border-2 border-ink bg-white min-h-[180px] flex items-center justify-center">
+            {shareCode === "...." ? (
+              <div className="animate-pulse text-[10px] uppercase font-bold opacity-30">Generating...</div>
+            ) : (
+              <QRCodeSVG value={url} size={180} />
+            )}
           </div>
           
           <div className="flex flex-col items-center gap-2 w-full">
@@ -47,8 +53,10 @@ export function ShareModal({ isOpen, onClose, url, shareCode }: ShareModalProps)
               Share Code
             </p>
             <div 
-              onClick={() => copyToClipboard(shareCode, "Share code")}
-              className="text-4xl font-black tracking-[0.2em] border-2 border-dashed border-ink/30 px-6 py-3 cursor-pointer hover:bg-ink/5 transition-all"
+              onClick={() => shareCode !== "...." && copyToClipboard(shareCode, "Share code")}
+              className={`text-4xl font-black tracking-[0.2em] border-2 border-dashed border-ink/30 px-6 py-3 transition-all ${
+                shareCode === "...." ? "opacity-20 cursor-default" : "cursor-pointer hover:bg-ink/5"
+              }`}
             >
               {shareCode}
             </div>
