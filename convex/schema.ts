@@ -66,4 +66,9 @@ export default defineSchema({
     // TODO (priority: low) - add a way to have guest participants 
 
   }),
+  images: defineTable({
+    storageId: v.id("_storage"),
+    uploadedBy: v.id("users"),
+    uploadedAt: v.number(),
+  }).index("by_user", ["uploadedBy"]),
 });
