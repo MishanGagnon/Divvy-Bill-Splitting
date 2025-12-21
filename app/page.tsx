@@ -89,18 +89,14 @@ function Content() {
 
   return (
     <div className="flex flex-col gap-8 w-full">
-      <div className="flex flex-col gap-2 text-center">
-        <h2 className="font-bold text-lg uppercase">
+      <div className="flex flex-col gap-1 text-center">
+        <h2 className="font-bold text-sm uppercase tracking-wide">
           Welcome, {viewer ?? "Anonymous"}
         </h2>
-        <p className="text-sm opacity-80 leading-relaxed italic">
-          &quot;Manage your split bills or upload a new receipt below.&quot;
+        <p className="text-xs opacity-60 leading-relaxed italic">
+          &quot;Join a friend's split or start a new one below.&quot;
         </p>
       </div>
-
-      <div className="dotted-line"></div>
-
-      <ReceiptList />
 
       <div className="dotted-line"></div>
 
@@ -108,7 +104,16 @@ function Content() {
 
       <div className="dotted-line"></div>
 
-      <ImageUpload />
+      <div className="flex flex-col gap-4">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-center">
+          --- Start a New Split ---
+        </h3>
+        <ImageUpload />
+      </div>
+
+      <div className="dotted-line"></div>
+
+      <ReceiptList />
     </div>
   );
 }

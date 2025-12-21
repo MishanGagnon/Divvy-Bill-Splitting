@@ -88,7 +88,7 @@ export function ImageUpload() {
       <div className="flex flex-col gap-4">
         {!selectedImage ? (
           <div
-            className={`border-2 border-dotted p-12 transition-all flex flex-col items-center justify-center min-h-[200px] cursor-pointer
+            className={`border-2 border-dotted p-8 transition-all flex flex-col items-center justify-center min-h-[150px] cursor-pointer
               ${isDragging ? "bg-ink/5 border-ink" : "border-ink/20 hover:border-ink/40"}
             `}
             onDragOver={onDragOver}
