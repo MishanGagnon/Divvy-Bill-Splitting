@@ -106,6 +106,7 @@ export const parseReceipt = internalAction({
     try {
       const receiptId = await ctx.runMutation(internal.receipt.createReceiptWithItems, {
         storageId: image.storageId,
+        hostUserId: image.uploadedBy, // Added hostUserId
         merchantName: parsedReceipt.merchantName ?? undefined,
         date: parsedReceipt.date ?? undefined,
         totalCents: parsedReceipt.totalCents ?? undefined,

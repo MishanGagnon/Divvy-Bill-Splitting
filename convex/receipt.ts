@@ -18,6 +18,34 @@ export const currentUser = query({
   },
 });
 
+
+/**
+ * Mutation to join a receipt as an authenticated participant.
+ */
+export const joinReceipt = mutation({
+  args: {
+    receiptId: v.id("receipts"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("You must be logged in to join a split");
+    }
+
+    const receipt = await ctx.db.get(args.receiptId);
+    if (!receipt) {
+      throw new Error("Receipt not found");
+    }
+
+    const participants = receipt.authedParticipants || [];
+    if (!participants.includes(userId)) {
+      await ctx.db.patch(args.receiptId, {
+        authedParticipants: [...participants, userId],
+      });
+    }
+  },
+});
+
 /**
  * Mutation to claim or unclaim an item on a receipt.
  */
@@ -109,6 +137,7 @@ export const getImageUrl = internalQuery({
 export const createReceiptWithItems = internalMutation({
   args: {
     storageId: v.id("_storage"),
+    hostUserId: v.id("users"), // New field
     merchantName: v.optional(v.string()),
     date: v.optional(v.string()),
     totalCents: v.optional(v.number()),
@@ -155,6 +184,7 @@ export const createReceiptWithItems = internalMutation({
         totalCents: args.totalCents,
         taxCents: args.taxCents,
         tipCents: args.tipCents,
+        hostUserId: args.hostUserId,
         status: "parsed",
         createdAt: Date.now(),
       });
@@ -178,6 +208,7 @@ export const createReceiptWithItems = internalMutation({
     // 2. Create a new receipt if none existed
     const receiptId = await ctx.db.insert("receipts", {
       imageID: args.storageId,
+      hostUserId: args.hostUserId,
       createdAt: Date.now(),
       merchantName: args.merchantName,
       date: args.date,
@@ -211,18 +242,16 @@ export const listUserReceipts = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
 
-    // 1. Get images uploaded by the user to find receipts they hosted
-    const userImages = await ctx.db
-      .query("images")
-      .withIndex("by_user", (q) => q.eq("uploadedBy", userId))
+    // 1. Get receipts hosted by the user (now indexed directly!)
+    const hostedReceipts = await ctx.db
+      .query("receipts")
+      .withIndex("by_host", (q) => q.eq("hostUserId", userId))
       .collect();
 
-    const storageIdToImageId = new Map(userImages.map(img => [img.storageId, img._id]));
-    const uploadedStorageIds = new Set(userImages.map(img => img.storageId));
+    const hostedReceiptIds = new Set(hostedReceipts.map((r) => r._id));
     
     // 2. Get receipts where the user has claimed at least one item
-    // Note: Since claimedBy is an array, we can't easily index it for equality.
-    // For now, we collect all items. In a large app, we'd want a separate claim table.
+    // We still scan items here, but only once.
     const allItems = await ctx.db.query("receiptItems").collect();
     const claimedReceiptIds = new Set<Id<"receipts">>();
     for (const item of allItems) {
@@ -231,20 +260,19 @@ export const listUserReceipts = query({
       }
     }
 
-    // 3. Get all receipts and filter
+    // 3. Combine hosted, claimed, and participant receipts
     const allReceipts = await ctx.db.query("receipts").collect();
-    
     const relevantReceipts = [];
-    for (const receipt of allReceipts) {
-      const isUploadedByMe = receipt.imageID && uploadedStorageIds.has(receipt.imageID);
-      const isClaimedByMe = claimedReceiptIds.has(receipt._id);
 
-      if (isUploadedByMe || isClaimedByMe) {
+    for (const receipt of allReceipts) {
+      const isHost = receipt.hostUserId === userId;
+      const isClaimant = claimedReceiptIds.has(receipt._id);
+      const isParticipant = receipt.authedParticipants?.includes(userId);
+
+      if (isHost || isClaimant || isParticipant) {
         // Find the image ID for the URL link
-        let imageId = receipt.imageID ? storageIdToImageId.get(receipt.imageID) : undefined;
-        
-        // If it's claimed but not uploaded by me, we need to find the image record
-        if (!imageId && receipt.imageID) {
+        let imageId;
+        if (receipt.imageID) {
           const image = await ctx.db
             .query("images")
             .filter(q => q.eq(q.field("storageId"), receipt.imageID))
@@ -259,8 +287,9 @@ export const listUserReceipts = query({
           date: receipt.date,
           totalCents: receipt.totalCents,
           status: receipt.status,
-          isUploadedByMe: !!isUploadedByMe,
-          isClaimedByMe,
+          isUploadedByMe: isHost,
+          isClaimedByMe: isClaimant,
+          isParticipantByMe: isParticipant, // Extra flag just in case
           createdAt: receipt.createdAt,
         });
       }
@@ -287,7 +316,12 @@ export const getReceiptByStorageId = query({
       totalCents: v.optional(v.number()),
       taxCents: v.optional(v.number()),
       tipCents: v.optional(v.number()),
+      hostUserId: v.id("users"),
       status: v.string(),
+      title: v.optional(v.string()),
+      joinCode: v.optional(v.string()),
+      currency: v.optional(v.string()),
+      authedParticipants: v.optional(v.array(v.id("users"))),
     }),
     v.null()
   ),
@@ -308,7 +342,12 @@ export const getReceiptByStorageId = query({
       totalCents: receipt.totalCents,
       taxCents: receipt.taxCents,
       tipCents: receipt.tipCents,
+      hostUserId: receipt.hostUserId,
       status: receipt.status,
+      title: receipt.title,
+      joinCode: receipt.joinCode,
+      currency: receipt.currency,
+      authedParticipants: receipt.authedParticipants,
     };
   },
 });
@@ -331,7 +370,20 @@ export const getReceiptWithItems = query({
         totalCents: v.optional(v.number()),
         taxCents: v.optional(v.number()),
         tipCents: v.optional(v.number()),
+        hostUserId: v.id("users"),
         status: v.string(),
+        title: v.optional(v.string()),
+        joinCode: v.optional(v.string()),
+        currency: v.optional(v.string()),
+        authedParticipants: v.optional(v.array(v.id("users"))),
+        participants: v.optional(
+          v.array(
+            v.object({
+              userId: v.id("users"),
+              userName: v.string(),
+            })
+          )
+        ),
       }),
       items: v.array(
         v.object({
@@ -394,6 +446,21 @@ export const getReceiptWithItems = query({
       })
     );
 
+    // Resolve participants
+    const participantIds = new Set<Id<"users">>();
+    participantIds.add(receipt.hostUserId);
+    receipt.authedParticipants?.forEach(id => participantIds.add(id));
+    
+    const resolvedParticipants = await Promise.all(
+      Array.from(participantIds).map(async (userId) => {
+        const user = await ctx.db.get(userId);
+        return {
+          userId,
+          userName: user?.name || user?.email || "Unknown User",
+        };
+      })
+    );
+
     let imageUrl: string | null = null;
     if (receipt.imageID) {
       imageUrl = await ctx.storage.getUrl(receipt.imageID);
@@ -409,7 +476,13 @@ export const getReceiptWithItems = query({
         totalCents: receipt.totalCents,
         taxCents: receipt.taxCents,
         tipCents: receipt.tipCents,
+        hostUserId: receipt.hostUserId,
         status: receipt.status,
+        title: receipt.title,
+        joinCode: receipt.joinCode,
+        currency: receipt.currency,
+        authedParticipants: receipt.authedParticipants,
+        participants: resolvedParticipants,
       },
       items: itemsWithUserNames,
       imageUrl,
@@ -441,7 +514,20 @@ export const getImageWithReceipt = query({
           totalCents: v.optional(v.number()),
           taxCents: v.optional(v.number()),
           tipCents: v.optional(v.number()),
+          hostUserId: v.id("users"),
           status: v.string(),
+          title: v.optional(v.string()),
+          joinCode: v.optional(v.string()),
+          currency: v.optional(v.string()),
+          authedParticipants: v.optional(v.array(v.id("users"))),
+          participants: v.optional(
+            v.array(
+              v.object({
+                userId: v.id("users"),
+                userName: v.string(),
+              })
+            )
+          ),
         }),
         v.null()
       ),
@@ -496,6 +582,8 @@ export const getImageWithReceipt = query({
       modifiers?: Array<{ name: string; priceCents?: number }>;
     }> = [];
 
+    let resolvedParticipants: Array<{ userId: Id<"users">; userName: string }> | undefined = undefined;
+
     if (receipt) {
       const receiptItems = await ctx.db
         .query("receiptItems")
@@ -525,6 +613,21 @@ export const getImageWithReceipt = query({
           };
         })
       );
+
+      // Resolve participants
+      const participantIds = new Set<Id<"users">>();
+      participantIds.add(receipt.hostUserId);
+      receipt.authedParticipants?.forEach(id => participantIds.add(id));
+      
+      resolvedParticipants = await Promise.all(
+        Array.from(participantIds).map(async (userId) => {
+          const user = await ctx.db.get(userId);
+          return {
+            userId,
+            userName: user?.name || user?.email || "Unknown User",
+          };
+        })
+      );
     }
 
     return {
@@ -543,7 +646,13 @@ export const getImageWithReceipt = query({
             totalCents: receipt.totalCents,
             taxCents: receipt.taxCents,
             tipCents: receipt.tipCents,
+            hostUserId: receipt.hostUserId,
             status: receipt.status,
+            title: receipt.title,
+            joinCode: receipt.joinCode,
+            currency: receipt.currency,
+            authedParticipants: receipt.authedParticipants,
+            participants: resolvedParticipants,
           }
         : null,
       items,

@@ -21,6 +21,9 @@ export default function ReceiptDetailPage() {
   const data = useQuery(api.receipt.getImageWithReceipt, { imageId });
   const parseReceipt = useAction(api.receiptActions.triggerParseReceipt);
   const toggleClaim = useMutation(api.receipt.toggleClaimItem);
+  const joinSplit = useMutation(api.receipt.joinReceipt);
+
+  const [isJoining, setIsJoining] = useState(false);
 
   const handleParseReceipt = async () => {
     setIsParsing(true);
@@ -126,8 +129,57 @@ export default function ReceiptDetailPage() {
   const { image, imageUrl, receipt, items } = data;
   const isParsed = receipt !== null;
 
+  // Check if user needs to join
+  const isHost = user && receipt && receipt.hostUserId === user._id;
+  const isParticipant = user && receipt && receipt.authedParticipants?.includes(user._id);
+  const needsToJoin = user && receipt && !isHost && !isParticipant;
+
+  const handleJoin = async () => {
+    setIsJoining(true);
+    try {
+      await joinSplit({ receiptId: receipt!._id });
+    } catch (error) {
+      console.error("Failed to join split:", error);
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background py-12 px-4 flex justify-center">
+      {/* Join Modal */}
+      {needsToJoin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm receipt-paper jagged-top jagged-bottom p-8 flex flex-col gap-6 shadow-2xl border-2 border-ink">
+            <div className="text-center space-y-4">
+              <h2 className="text-lg font-bold uppercase tracking-widest">
+                Join this Split?
+              </h2>
+              <p className="text-xs uppercase opacity-60 leading-relaxed">
+                You are not currently a participant in this bill session. Would
+                you like to join and start claiming items?
+              </p>
+            </div>
+            <div className="dotted-line"></div>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => router.push("/")}
+                className="border-2 border-ink py-3 text-xs font-bold uppercase tracking-widest hover:bg-ink/5 transition-all"
+              >
+                [ NO ]
+              </button>
+              <button
+                onClick={handleJoin}
+                disabled={isJoining}
+                className="bg-ink text-paper py-3 text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-50"
+              >
+                {isJoining ? "JOINING..." : ">> YES <<"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-8 flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col items-center gap-2">
@@ -144,6 +196,23 @@ export default function ReceiptDetailPage() {
             <p className="text-xs uppercase tracking-widest opacity-70">
               {receipt.date}
             </p>
+          )}
+          {receipt?.participants && receipt.participants.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2 mt-2">
+              {receipt.participants.map((p, idx) => (
+                <div
+                  key={idx}
+                  title={p.userName}
+                  className={`text-[9px] font-black tracking-tighter px-2 py-0.5 border-2 ${
+                    p.userId === user?._id
+                      ? "border-ink bg-ink text-paper"
+                      : "border-ink/20 text-ink/40"
+                  }`}
+                >
+                  [ {getInitials(p.userName)} ]
+                </div>
+              ))}
+            </div>
           )}
           <div className="dotted-line"></div>
         </div>

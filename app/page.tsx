@@ -152,7 +152,9 @@ function ReceiptList() {
                       ? "[ HOST + CLAIMED ]"
                       : receipt.isUploadedByMe
                       ? "[ HOST ]"
-                      : "[ CLAIMED ]"}
+                      : receipt.isClaimedByMe
+                      ? "[ CLAIMED ]"
+                      : "[ JOINED ]"}
                   </span>
                 </div>
                 <span className="group-hover:translate-x-1 transition-transform">

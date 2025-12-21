@@ -2,11 +2,13 @@
 
 import { useState, useRef, ChangeEvent, DragEvent } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { toast } from "sonner";
 
 export function ImageUpload() {
+  const router = useRouter();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -67,10 +69,11 @@ export function ImageUpload() {
       if (!result.ok) throw new Error("Upload failed");
 
       const { storageId } = await result.json();
-      await writeImage({ storageId });
+      const imageId = await writeImage({ storageId });
       
       clearImage();
       toast.success("Receipt uploaded successfully!");
+      router.push(`/receipts/${imageId}`);
     } catch (error) {
       console.error("Upload failed:", error);
       toast.error("Failed to upload receipt");

@@ -13,31 +13,37 @@ export default defineSchema({
 
   // RECEIPT PARSING APP TABLES
 
-  // Receipts Table
+  // Receipts Table (Merged with BillSession)
   // High level receipt info for totals and tips and image
   receipts: defineTable({
-    // Image info
+    // --- Image info ---
     imageID: v.optional(v.id("_storage")), // Convex File ID from Images Relation
     createdAt: v.number(),
 
-    // Amounts info
+    // --- Amounts info ---
     totalCents: v.optional(v.number()),
     taxCents: v.optional(v.number()),
     tipCents: v.optional(v.number()),
 
-    // Merchant and Date info
+    // --- Merchant and Date info ---
     merchantName: v.optional(v.string()),
     date: v.optional(v.string()),
 
-    // Status
-    // TODO: consider adding a "pending" status, incase it needs to be reviewed by host
-    status: v.string(), // "parsed" | "error" | "paid" 
-  }).index("by_imageID", ["imageID"]),
+    // --- Session / Status info ---
+    hostUserId: v.id("users"),
+    title: v.optional(v.string()),
+    status: v.string(), // "parsed" | "error" | "paid" | "draft" | "active" | "finalized" | "settled"
+    joinCode: v.optional(v.string()),
+    currency: v.optional(v.string()),
+    authedParticipants: v.optional(v.array(v.id("users"))),
+  })
+    .index("by_imageID", ["imageID"])
+    .index("by_host", ["hostUserId"])
+    .index("by_joinCode", ["joinCode"]),
 
   // Receipt Line Items Table
   // Each line item is a single item on the receipt
   receiptItems: defineTable({
-
     receiptId: v.id("receipts"),
     name: v.string(),
     quantity: v.number(),
@@ -51,25 +57,6 @@ export default defineSchema({
 
   }).index("by_receipt", ["receiptId"]),
 
-
-  // BillSession - Relations
-  billSession: defineTable({
-
-    hostUserId: v.id("users"),
-    receiptId: v.id("receipts"),
-
-    title: v.string(),
-    createdAt: v.number(),
-
-    status: v.optional(v.string()), // "draft" | "active" | "finalized" | "settled"
-
-    joinCode: v.optional(v.string()), // short code or QR
-    currency: v.optional(v.string()),
-
-    authedParticipants: v.optional(v.array(v.id("users"))),
-    // TODO (priority: low) - add a way to have guest participants 
-
-  }),
   images: defineTable({
     storageId: v.id("_storage"),
     uploadedBy: v.id("users"),

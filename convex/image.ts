@@ -18,7 +18,7 @@ export const writeImage = mutation({
     if (!userId) {
       throw new Error("Unauthorized");
     }
-    await ctx.db.insert("images", {
+    return await ctx.db.insert("images", {
       storageId: args.storageId,
       uploadedBy: userId,
       uploadedAt: Date.now(),
