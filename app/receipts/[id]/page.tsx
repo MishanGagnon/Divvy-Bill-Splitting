@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { getBaseUrl } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function ReceiptDetailPage() {
   const params = useParams();
@@ -182,16 +184,28 @@ export default function ReceiptDetailPage() {
 
       <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-8 flex flex-col gap-6">
         {/* Header */}
-        <div className="flex flex-col items-center gap-2">
-          <Link
-            href="/"
-            className="self-start text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 mb-4"
-          >
-            [ &lt;&lt; BACK ]
-          </Link>
-          <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-center">
-            {receipt?.merchantName || "Transaction Details"}
-          </h1>
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-full flex justify-between items-center mb-4">
+              <Link
+                href="/"
+                className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100"
+              >
+                [ {"<<"} BACK ]
+              </Link>
+              <button
+                onClick={() => {
+                  const url = `${getBaseUrl()}/receipts/${imageId}`;
+                  navigator.clipboard.writeText(url);
+                  toast.success("Share link copied to clipboard!");
+                }}
+                className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer"
+              >
+                [ COPY SHARE LINK ]
+              </button>
+            </div>
+            <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-center">
+              {receipt?.merchantName || "Transaction Details"}
+            </h1>
           {receipt?.date && (
             <p className="text-xs uppercase tracking-widest opacity-70">
               {receipt.date}

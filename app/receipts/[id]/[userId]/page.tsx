@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { getBaseUrl } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function PersonalReceiptPage() {
   const params = useParams();
@@ -103,12 +105,24 @@ export default function PersonalReceiptPage() {
       <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-8 flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col items-center gap-2">
-          <Link
-            href={`/receipts/${receiptImageId}`}
-            className="self-start text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 mb-4"
-          >
-            [ {"<<"} BACK TO FULL RECEIPT ]
-          </Link>
+          <div className="w-full flex justify-between items-center mb-4">
+            <Link
+              href={`/receipts/${receiptImageId}`}
+              className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100"
+            >
+              [ {"<<"} BACK TO FULL RECEIPT ]
+            </Link>
+            <button
+              onClick={() => {
+                const url = `${getBaseUrl()}/receipts/${receiptImageId}/${targetUserId}`;
+                navigator.clipboard.writeText(url);
+                toast.success("Personal statement link copied!");
+              }}
+              className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer"
+            >
+              [ COPY STATEMENT LINK ]
+            </button>
+          </div>
           <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-center">
             Personal Statement
           </h1>
