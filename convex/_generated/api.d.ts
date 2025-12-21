@@ -12,6 +12,9 @@ import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as image from "../image.js";
 import type * as myFunctions from "../myFunctions.js";
+import type * as prompts from "../prompts.js";
+import type * as receipt from "../receipt.js";
+import type * as receiptActions from "../receiptActions.js";
 
 import type {
   ApiFromModules,
@@ -24,6 +27,9 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   image: typeof image;
   myFunctions: typeof myFunctions;
+  prompts: typeof prompts;
+  receipt: typeof receipt;
+  receiptActions: typeof receiptActions;
 }>;
 
 /**

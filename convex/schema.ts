@@ -28,7 +28,7 @@ export default defineSchema({
     // Status
     // TODO: consider adding a "pending" status, incase it needs to be reviewed by host
     status: v.string(), // "parsed" | "error" | "paid" 
-  }),
+  }).index("by_imageID", ["imageID"]),
 
   // Receipt Line Items Table
   // Each line item is a single item on the receipt

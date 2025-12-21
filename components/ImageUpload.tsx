@@ -2,6 +2,7 @@
 
 import { useState, useRef, ChangeEvent, DragEvent } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Id } from "../convex/_generated/dataModel";
@@ -217,11 +218,15 @@ export function ImageUpload() {
           <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-6">
             Your Uploaded Bills
           </h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            Click on a receipt to view details and parse it
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {images.map((img) => (
-              <div
+              <Link
                 key={img.id}
-                className="group relative aspect-[3/4] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all"
+                href={`/receipts/${img.id}`}
+                className="group relative aspect-[3/4] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 shadow-sm hover:shadow-lg hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer"
               >
                 {img.url && (
                   <Image
@@ -231,10 +236,21 @@ export function ImageUpload() {
                     className="object-cover"
                   />
                 )}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200" />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-200" />
+                {/* View indicator */}
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <span className="text-white text-sm font-medium">
+                    View Receipt →
+                  </span>
+                </div>
+                {/* Delete button */}
                 <button
-                  onClick={() => handleDelete(img.id as Id<"images">)}
-                  className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600 shadow-lg"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDelete(img.id as Id<"images">);
+                  }}
+                  className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600 shadow-lg z-10"
                   title="Delete image"
                 >
                   <svg
@@ -252,7 +268,7 @@ export function ImageUpload() {
                     />
                   </svg>
                 </button>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
