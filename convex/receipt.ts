@@ -3,10 +3,12 @@ import { mutation, internalMutation, internalQuery, query } from "./_generated/s
 import { Id } from "./_generated/dataModel";
 import { auth } from "./auth";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
 
 /**
  * Create an image record and a draft receipt in one transaction.
  * Returns the receipt ID for routing.
+ * Automatically schedules parsing to begin.
  */
 export const createImageWithDraftReceipt = mutation({
   args: {
@@ -20,18 +22,24 @@ export const createImageWithDraftReceipt = mutation({
     }
 
     // Create the image record
-    const imageId = await ctx.db.insert("images", {
+    await ctx.db.insert("images", {
       storageId: args.storageId,
       uploadedBy: userId,
       uploadedAt: Date.now(),
     });
 
-    // Create a draft receipt
+    // Create a receipt with "parsing" status - parsing starts automatically
     const receiptId = await ctx.db.insert("receipts", {
       imageID: args.storageId,
       hostUserId: userId,
       createdAt: Date.now(),
-      status: "draft",
+      status: "parsing",
+      parsingStartedAt: Date.now(),
+    });
+
+    // Schedule parsing to begin immediately
+    await ctx.scheduler.runAfter(0, internal.receiptActions.parseReceiptByStorageId, {
+      storageId: args.storageId,
     });
 
     return receiptId;
@@ -77,6 +85,71 @@ export const joinReceipt = mutation({
         authedParticipants: [...participants, userId],
       });
     }
+  },
+});
+
+/**
+ * Mutation to delete a receipt, its items, its image record, and storage file.
+ * Only the host can perform this action.
+ */
+export const deleteReceipt = mutation({
+  args: {
+    receiptId: v.id("receipts"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+
+    const receipt = await ctx.db.get(args.receiptId);
+    if (!receipt) {
+      throw new Error("Receipt not found");
+    }
+
+    // 1. Verify the user is the host
+    if (receipt.hostUserId !== userId) {
+      throw new Error("Unauthorized: Only the host can delete this receipt");
+    }
+
+    // 2. Find and delete associated items
+    const items = await ctx.db
+      .query("receiptItems")
+      .withIndex("by_receipt", (q) => q.eq("receiptId", args.receiptId))
+      .collect();
+    for (const item of items) {
+      await ctx.db.delete(item._id);
+    }
+
+    // 3. Find and delete associated share codes
+    const shareCodes = await ctx.db
+      .query("shareCodes")
+      .withIndex("by_receiptId", (q) => q.eq("receiptId", args.receiptId))
+      .collect();
+    for (const code of shareCodes) {
+      await ctx.db.delete(code._id);
+    }
+
+    // 4. Find and delete the image record and storage file
+    if (receipt.imageID) {
+      const imageRecord = await ctx.db
+        .query("images")
+        .withIndex("by_user", (q) => q.eq("uploadedBy", userId))
+        .filter((q) => q.eq(q.field("storageId"), receipt.imageID))
+        .unique();
+
+      if (imageRecord) {
+        await ctx.db.delete(imageRecord._id);
+      }
+
+      // Delete the actual file from storage
+      await ctx.storage.delete(receipt.imageID);
+    }
+
+    // 5. Delete the receipt itself
+    await ctx.db.delete(args.receiptId);
+
+    return { success: true };
   },
 });
 
@@ -159,6 +232,23 @@ export const toggleParticipantClaim = mutation({
     await ctx.db.patch(args.itemId, {
       claimedBy: newClaimedBy.length > 0 ? newClaimedBy : undefined,
     });
+  },
+});
+
+/**
+ * Internal mutation to mark a receipt as parsing.
+ */
+export const markReceiptParsing = internalMutation({
+  args: {
+    receiptId: v.id("receipts"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.receiptId, {
+      status: "parsing",
+      parsingStartedAt: Date.now(),
+    });
+    return null;
   },
 });
 
@@ -504,6 +594,7 @@ export const getReceiptWithItems = query({
         tipCents: v.optional(v.number()),
         hostUserId: v.id("users"),
         status: v.string(),
+        parsingStartedAt: v.optional(v.number()),
         title: v.optional(v.string()),
         joinCode: v.optional(v.string()),
         currency: v.optional(v.string()),
@@ -620,6 +711,7 @@ export const getReceiptWithItems = query({
         tipCents: receipt.tipCents,
         hostUserId: receipt.hostUserId,
         status: receipt.status,
+        parsingStartedAt: receipt.parsingStartedAt,
         title: receipt.title,
         joinCode: receipt.joinCode,
         currency: receipt.currency,

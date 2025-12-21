@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,14 +16,17 @@ export default function ReceiptDetailPage() {
   const router = useRouter();
   const receiptId = params.id as Id<"receipts">;
 
-  const [isParsing, setIsParsing] = useState(false);
+  const [isReparsing, setIsReparsing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [timer, setTimer] = useState(0);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const user = useQuery(api.receipt.currentUser);
   const data = useQuery(api.receipt.getReceiptWithItems, { receiptId });
   const parseReceipt = useAction(api.receiptActions.triggerParseReceiptByReceiptId);
+  const deleteReceipt = useMutation(api.receipt.deleteReceipt);
   const toggleClaim = useMutation(api.receipt.toggleClaimItem);
   const toggleParticipantClaim = useMutation(api.receipt.toggleParticipantClaim);
   const joinSplit = useMutation(api.receipt.joinReceipt);
@@ -48,15 +51,32 @@ export default function ReceiptDetailPage() {
     }
   };
 
-  const handleParseReceipt = async () => {
-    setIsParsing(true);
-    setParseError(null);
-    setTimer(0);
+  // Check if receipt is currently parsing (either from server status or local reparse)
+  const isParsing = data?.receipt.status === "parsing" || isReparsing;
 
-    const startTime = performance.now();
+  // Track elapsed time when parsing
+  useEffect(() => {
+    if (!isParsing) {
+      setElapsedTime(0);
+      return;
+    }
+
+    // If we have a server-side parsingStartedAt, use that as the start time
+    const startTime = data?.receipt.parsingStartedAt || Date.now();
+    
+    // Update elapsed time immediately
+    setElapsedTime((Date.now() - startTime) / 1000);
+    
     const interval = setInterval(() => {
-      setTimer((performance.now() - startTime) / 1000);
+      setElapsedTime((Date.now() - startTime) / 1000);
     }, 100);
+
+    return () => clearInterval(interval);
+  }, [isParsing, data?.receipt.parsingStartedAt]);
+
+  const handleReparse = async () => {
+    setIsReparsing(true);
+    setParseError(null);
 
     try {
       await parseReceipt({ receiptId });
@@ -66,8 +86,21 @@ export default function ReceiptDetailPage() {
         error instanceof Error ? error.message : "Failed to parse receipt"
       );
     } finally {
-      clearInterval(interval);
-      setIsParsing(false);
+      setIsReparsing(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteReceipt({ receiptId });
+      toast.success("Receipt deleted successfully");
+      router.push("/");
+    } catch (error) {
+      console.error("Failed to delete receipt:", error);
+      toast.error("Failed to delete receipt");
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -151,6 +184,7 @@ export default function ReceiptDetailPage() {
 
   const { receipt, imageUrl, items } = data;
   const isParsed = receipt.status === "parsed";
+  const isCurrentlyParsing = receipt.status === "parsing" || isReparsing;
 
   // Check if user needs to join
   const isHost = user && receipt.hostUserId === user._id;
@@ -177,6 +211,39 @@ export default function ReceiptDetailPage() {
         url={`${getBaseUrl()}/join/${shareCode || ""}`}
         shareCode={shareCode || "...."}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm receipt-paper jagged-top jagged-bottom p-8 flex flex-col gap-6 shadow-2xl border-2 border-red-600">
+            <div className="text-center space-y-4">
+              <h2 className="text-lg font-bold uppercase tracking-widest text-red-600">
+                Delete Receipt?
+              </h2>
+              <p className="text-xs uppercase opacity-60 leading-relaxed">
+                This action is permanent. All items, claims, and the receipt image will be destroyed.
+              </p>
+            </div>
+            <div className="dotted-line"></div>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="border-2 border-ink py-3 text-xs font-bold uppercase tracking-widest hover:bg-ink/5 transition-all"
+              >
+                [ CANCEL ]
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="bg-red-600 text-white py-3 text-xs font-bold uppercase tracking-widest hover:bg-red-700 transition-all disabled:opacity-50"
+              >
+                {isDeleting ? "DELETING..." : ">> DELETE <<"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Join Modal */}
       {needsToJoin && (
@@ -221,13 +288,33 @@ export default function ReceiptDetailPage() {
               >
                 [ {"<<"} BACK ]
               </Link>
-              <button
-                onClick={handleShareClick}
-                disabled={isGeneratingCode}
-                className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer disabled:opacity-30"
-              >
-                {isGeneratingCode ? "[ ... ]" : "[ SHARE ]"}
-              </button>
+              <div className="flex items-center gap-4">
+                {isParsed && isHost && (
+                  <button
+                    onClick={handleReparse}
+                    disabled={isCurrentlyParsing}
+                    title="Reparse Receipt"
+                    className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer disabled:opacity-30 flex items-center gap-1"
+                  >
+                    [ REPARSE ]
+                  </button>
+                )}
+                <button
+                  onClick={handleShareClick}
+                  disabled={isGeneratingCode}
+                  className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer disabled:opacity-30"
+                >
+                  {isGeneratingCode ? "[ ... ]" : "[ SHARE ]"}
+                </button>
+                {isHost && (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="text-[10px] font-bold uppercase underline text-red-600/50 hover:text-red-600 cursor-pointer"
+                  >
+                    [ DELETE ]
+                  </button>
+                )}
+              </div>
             </div>
             <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-center">
               {receipt.merchantName || "Transaction Details"}
@@ -260,69 +347,71 @@ export default function ReceiptDetailPage() {
         {/* Image Section */}
         <div className="flex flex-col gap-4">
           <div className="border border-ink/20 p-1 bg-paper">
-            <div className="relative aspect-[3/4] w-full">
-              {imageUrl ? (
-                <Image
-                  src={imageUrl}
-                  alt="Receipt"
-                  fill
-                  className="object-contain"
-                  priority
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-[10px] uppercase opacity-30">
-                  No Image Found
-                </div>
-              )}
-            </div>
+          <div className="relative aspect-[3/4] w-full">
+            {imageUrl ? (
+              <Image
+                src={imageUrl}
+                alt="Receipt"
+                fill
+                className="object-contain"
+                priority
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-[10px] uppercase opacity-30">
+                No Image Found
+              </div>
+            )}
           </div>
-
-          <div className="flex flex-col gap-2">
-            <button
-              onClick={handleParseReceipt}
-              disabled={isParsing}
-              className="w-full border-2 border-ink py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-ink hover:text-paper transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {isParsing ? (
-                <>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="animate-spin"
-                  >
-                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                  {isParsed ? "Reparsing..." : "Parsing..."} ({timer.toFixed(1)}s)
-                </>
-              ) : (
-                <>
-                  {isParsed ? ">> Reparse Receipt <<" : ">> Parse Receipt <<"}
-                </>
-              )}
-            </button>
-            <p className="text-[10px] uppercase opacity-40 text-center italic">
-              Note: This usually takes about 30 seconds
-            </p>
-          </div>
-          {parseError && (
-            <p className="text-red-600 text-[10px] uppercase font-bold text-center">
-              Error: {parseError}
-            </p>
-          )}
         </div>
+
+        {parseError && (
+          <p className="text-red-600 text-[10px] uppercase font-bold text-center">
+            Error: {parseError}
+          </p>
+        )}
+      </div>
 
         <div className="dotted-line"></div>
 
         {/* Content Section */}
-        {isParsed ? (
+        {isCurrentlyParsing ? (
+          <div className="flex flex-col items-center gap-6 py-8">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="animate-spin opacity-60"
+                >
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+              </div>
+              <div className="text-center space-y-2">
+                <p className="text-sm font-bold uppercase tracking-[0.2em]">
+                  Parsing Receipt
+                </p>
+                <p className="text-2xl font-mono font-bold tabular-nums">
+                  {elapsedTime.toFixed(1)}s
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-2 max-w-[280px]">
+              <div className="w-full bg-ink/10 h-1 overflow-hidden">
+                <div className="h-full bg-ink/40 animate-pulse" style={{ width: '100%' }}></div>
+              </div>
+              <p className="text-[10px] uppercase opacity-50 text-center leading-relaxed">
+                AI is extracting items, prices, and totals from your receipt image...
+              </p>
+            </div>
+          </div>
+        ) : isParsed ? (
           <div className="flex flex-col gap-6">
             {/* Summary */}
             <div className="flex flex-col gap-2">
@@ -467,13 +556,19 @@ export default function ReceiptDetailPage() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-4 py-8 text-center opacity-40">
-            <p className="text-xs uppercase font-bold tracking-widest">
-              Status: Unparsed
+          <div className="flex flex-col items-center gap-4 py-8 text-center">
+            <p className="text-xs uppercase font-bold tracking-widest opacity-40">
+              Status: {receipt.status === "error" ? "Error" : "Waiting"}
             </p>
-            <p className="text-[10px] uppercase leading-relaxed max-w-[200px]">
-              Click the button above to begin AI transcription
-            </p>
+            {receipt.status === "error" ? (
+              <p className="text-[10px] uppercase leading-relaxed max-w-[200px] text-red-600">
+                Failed to parse receipt. Please try uploading again.
+              </p>
+            ) : (
+              <p className="text-[10px] uppercase leading-relaxed max-w-[200px] opacity-40">
+                Preparing to parse...
+              </p>
+            )}
           </div>
         )}
 

@@ -32,7 +32,8 @@ export default defineSchema({
     // --- Session / Status info ---
     hostUserId: v.id("users"),
     title: v.optional(v.string()),
-    status: v.string(), // "parsed" | "error" | "paid" | "draft" | "active" | "finalized" | "settled"
+    status: v.string(), // "parsing" | "parsed" | "error" | "paid" | "draft" | "active" | "finalized" | "settled"
+    parsingStartedAt: v.optional(v.number()), // Timestamp when parsing started
     joinCode: v.optional(v.string()),
     currency: v.optional(v.string()),
     authedParticipants: v.optional(v.array(v.id("users"))),

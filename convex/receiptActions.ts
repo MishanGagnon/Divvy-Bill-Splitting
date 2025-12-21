@@ -162,6 +162,7 @@ export const triggerParseReceipt = action({
 /**
  * Public action to trigger receipt parsing by receipt ID.
  * Looks up the image from the receipt and triggers parsing.
+ * Used for re-parsing an existing receipt.
  */
 export const triggerParseReceiptByReceiptId = action({
   args: {
@@ -192,9 +193,39 @@ export const triggerParseReceiptByReceiptId = action({
       throw new Error("Receipt has no associated image");
     }
 
+    // Mark as parsing before starting
+    await ctx.runMutation(internal.receipt.markReceiptParsing, {
+      receiptId: args.receiptId,
+    });
+
     // Find the image record by storageId
     const image = await ctx.runQuery(internal.receipt.getImageByStorageId, {
       storageId: receiptData.imageID,
+    });
+
+    if (!image) {
+      throw new Error("Image record not found");
+    }
+
+    return await ctx.runAction(internal.receiptActions.parseReceipt, {
+      imageId: image._id,
+    });
+  },
+});
+
+/**
+ * Internal action to parse a receipt by storage ID.
+ * Called automatically after image upload.
+ */
+export const parseReceiptByStorageId = internalAction({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  returns: v.id("receipts"),
+  handler: async (ctx, args): Promise<Id<"receipts">> => {
+    // Find the image record by storageId
+    const image = await ctx.runQuery(internal.receipt.getImageByStorageId, {
+      storageId: args.storageId,
     });
 
     if (!image) {
