@@ -550,60 +550,76 @@ export default function ReceiptDetailPage() {
                     );
 
                     return (
-                      <div key={item._id} className="flex flex-col gap-1">
-                        <div className="grid grid-cols-[1.5rem_1fr_auto_4.5rem] gap-2 items-center text-xs uppercase">
-                          <span className="flex-shrink-0 opacity-60">
-                            {item.quantity}X
-                          </span>
-                          <span className="font-bold truncate">{item.name}</span>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => toggleClaim({ itemId: item._id })}
-                              className={`text-[11px] font-black tracking-tighter px-2 py-0.5 border-2 transition-all ${
-                                isClaimedByUser
-                                  ? "border-ink bg-ink text-paper hover:opacity-90"
-                                  : "border-dotted border-ink/40 text-ink/60 hover:border-solid hover:border-ink hover:text-ink"
-                              }`}
-                            >
-                              {isClaimedByUser ? "UNCLAIM" : "CLAIM"}
-                            </button>
-                            <button
-                              onClick={() => setSplittingItemId(splittingItemId === item._id ? null : item._id)}
-                              className={`text-[11px] font-black tracking-tighter px-2 py-0.5 border-2 transition-all ${
-                                splittingItemId === item._id
-                                  ? "border-ink bg-ink text-paper"
-                                  : "border-ink/40 text-ink/60 hover:border-ink hover:text-ink"
-                              }`}
-                            >
-                              SPLIT
-                            </button>
+                      <div key={item._id} className="flex flex-col gap-2">
+                        {/* Mobile: Stacked with indentation | Desktop: Grid */}
+                        <div className="flex flex-col sm:grid sm:grid-cols-[1.5rem_1fr_auto_4.5rem] sm:gap-2 sm:items-center text-xs uppercase">
+                          
+                          {/* Main Row: Qty, Name, Price (Mobile) / Grid Columns (Desktop) */}
+                          <div className="flex justify-between items-start sm:contents">
+                            <div className="flex gap-3 min-w-0 sm:contents">
+                              <span className="flex-shrink-0 opacity-60 w-6 sm:order-1">
+                                {item.quantity}X
+                              </span>
+                              <span className="font-bold truncate sm:order-2">{item.name}</span>
+                            </div>
+                            <span className="text-right font-bold sm:order-4 sm:font-normal">
+                              {formatCurrency(totalItemPriceCents)}
+                            </span>
                           </div>
-                          <span className="text-right">{formatCurrency(totalItemPriceCents)}</span>
+
+                          {/* Sub-section: Modifiers, Actions, Claimants (Indented on Mobile) */}
+                          <div className="ml-9 flex flex-col gap-2 mt-1 sm:mt-0 sm:ml-0 sm:pl-0 sm:border-l-0 sm:contents">
+                            
+                            {/* Actions (Indented on Mobile | Column 3 on Desktop) */}
+                            <div className="flex items-center gap-1 sm:order-3">
+                              <button
+                                onClick={() => toggleClaim({ itemId: item._id })}
+                                className={`text-[10px] font-black tracking-tighter px-2 py-0.5 border-2 transition-all ${
+                                  isClaimedByUser
+                                    ? "border-ink bg-ink text-paper hover:opacity-90"
+                                    : "border-dotted border-ink/40 text-ink/60 hover:border-solid hover:border-ink hover:text-ink"
+                                }`}
+                              >
+                                {isClaimedByUser ? "UNCLAIM" : "CLAIM"}
+                              </button>
+                              <button
+                                onClick={() => setSplittingItemId(splittingItemId === item._id ? null : item._id)}
+                                className={`text-[10px] font-black tracking-tighter px-2 py-0.5 border-2 transition-all ${
+                                  splittingItemId === item._id
+                                    ? "border-ink bg-ink text-paper"
+                                    : "border-ink/40 text-ink/60 hover:border-ink hover:text-ink"
+                                }`}
+                              >
+                                SPLIT
+                              </button>
+                            </div>
+
+                            {/* Modifiers (Indented on Mobile | Beneath Name on Desktop) */}
+                            {item.modifiers && item.modifiers.length > 0 && (
+                              <div className="flex flex-col gap-0.5 italic opacity-60 text-[10px] uppercase sm:col-start-2 sm:order-5">
+                                {item.modifiers.map((mod, idx) => (
+                                  <div key={idx}>+ {mod.name}</div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Claimants (Indented on Mobile | Beneath Modifiers on Desktop) */}
+                            {item.claimedBy && item.claimedBy.length > 0 && (
+                              <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5 sm:col-start-2 sm:order-6">
+                                <span className="text-[9px] uppercase font-bold opacity-30">Claimed by:</span>
+                                {item.claimedBy.map((claim, idx) => (
+                                  <span key={idx} className="text-[9px] uppercase font-bold opacity-60">
+                                    {claim.userName}{idx < (item.claimedBy?.length || 0) - 1 ? "," : ""}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
 
-                        {item.modifiers && item.modifiers.length > 0 && (
-                          <div className="flex flex-col gap-0.5 ml-8 italic opacity-60 text-[10px] uppercase">
-                            {item.modifiers.map((mod, idx) => (
-                              <div key={idx}>+ {mod.name}</div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Claimed Names Display */}
-                        {item.claimedBy && item.claimedBy.length > 0 && (
-                          <div className="flex flex-wrap gap-x-2 gap-y-0.5 ml-8 mt-0.5">
-                            <span className="text-[10px] uppercase font-bold opacity-30">Claimed by:</span>
-                            {item.claimedBy.map((claim, idx) => (
-                              <span key={idx} className="text-[10px] uppercase font-bold opacity-60">
-                                {claim.userName}{idx < (item.claimedBy?.length || 0) - 1 ? "," : ""}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Split Selector UI */}
+                        {/* Split Selector UI (Always indented) */}
                         {splittingItemId === item._id && (
-                          <div className="mt-2 ml-8 p-3 border-2 border-dashed border-ink/20 flex flex-col gap-3 bg-paper">
+                          <div className="mt-2 ml-9 p-3 border-2 border-dashed border-ink/20 flex flex-col gap-3 bg-paper">
                             <div className="flex justify-between items-center">
                               <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">Split With Participants:</p>
                               <button 
@@ -765,7 +781,7 @@ export default function ReceiptDetailPage() {
               href={`/receipts/${receiptId}/${user._id}`}
               className="w-full border-2 border-ink py-3 text-xs font-bold uppercase tracking-[0.2em] text-center hover:bg-ink hover:text-paper transition-all"
             >
-              {">> View Your Personal Receipt <<"}
+              VIEW YOUR PERSONAL RECEIPT
             </Link>
           </div>
         )}

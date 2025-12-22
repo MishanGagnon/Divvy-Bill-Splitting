@@ -134,7 +134,7 @@ export default function PersonalReceiptPage() {
               href={`/receipts/${receiptId}`}
               className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100"
             >
-              [ {"<<"} BACK TO FULL RECEIPT ]
+              {"<<"} BACK TO FULL RECEIPT
             </Link>
             <button
               onClick={() => {
@@ -144,7 +144,7 @@ export default function PersonalReceiptPage() {
               }}
               className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer"
             >
-              [ COPY STATEMENT LINK ]
+              COPY STATEMENT LINK
             </button>
           </div>
           <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-center">

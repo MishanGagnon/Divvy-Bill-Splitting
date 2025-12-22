@@ -34,7 +34,7 @@ export default function Home() {
             />
           </div>
           <h1 className="text-xl font-bold uppercase tracking-widest text-center">
-            Bill Splitting Terminal
+            Divvy Bill Splitter
           </h1>
           <div className="dotted-line"></div>
         </div>
@@ -179,7 +179,7 @@ function Content() {
           Welcome, {viewerName}
         </h2>
         <p className="text-xs opacity-60 leading-relaxed italic">
-          &quot;Join a friend's split or start a new one below.&quot;
+          Join a friend's split or start a new one below
         </p>
       </div>
 
@@ -214,13 +214,13 @@ function ActionChoice({ onSelect }: { onSelect: (action: "join" | "start") => vo
           onClick={() => onSelect("join")}
           className="border-2 border-ink py-3 px-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-ink/10 active:bg-ink/20 transition-all min-h-[44px] touch-manipulation"
         >
-          [ JOIN SPLIT ]
+          JOIN SPLIT
         </button>
         <button
           onClick={() => onSelect("start")}
           className="border-2 border-ink py-3 px-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-ink/10 active:bg-ink/20 transition-all min-h-[44px] touch-manipulation"
         >
-          [ START SPLIT ]
+          START SPLIT
         </button>
       </div>
     </div>
