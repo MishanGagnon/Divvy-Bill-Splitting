@@ -7,6 +7,7 @@ import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { getBaseUrl } from "@/lib/utils";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 export default function PersonalReceiptPage() {
   const params = useParams();
@@ -16,6 +17,15 @@ export default function PersonalReceiptPage() {
 
   const user = useQuery(api.receipt.currentUser);
   const data = useQuery(api.receipt.getReceiptWithItems, { receiptId });
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+      return /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+    };
+    setIsMobile(checkMobile());
+  }, []);
 
   // Format cents to dollars
   const formatCurrency = (cents: number | undefined) => {
@@ -99,6 +109,20 @@ export default function PersonalReceiptPage() {
   const personalTaxCents = Math.round((receipt?.taxCents || 0) * personalProportion);
   const personalTipCents = Math.round((receipt?.tipCents || 0) * personalProportion);
   const personalTotalCents = personalSubtotalCents + personalTaxCents + personalTipCents;
+
+  const handleVenmoPay = () => {
+    if (!receipt.hostVenmoUsername) {
+      toast.error("Host hasn't set up their Venmo username yet.");
+      return;
+    }
+
+    const amount = (personalTotalCents / 100).toFixed(2);
+    const merchant = receipt.merchantName || "Receipt";
+    const note = encodeURIComponent(`Split for ${merchant}`);
+    const venmoUrl = `venmo://paycharge?txn=pay&recipients=${receipt.hostVenmoUsername}&amount=${amount}&note=${note}`;
+    
+    window.location.href = venmoUrl;
+  };
 
   return (
     <div className="min-h-screen bg-background py-12 px-4 flex justify-center">
@@ -240,6 +264,26 @@ export default function PersonalReceiptPage() {
               <span>{formatCurrency(personalTotalCents)}</span>
             </div>
           </div>
+
+          {/* Venmo Payment Button - Mobile Only */}
+          {isMobile && personalTotalCents > 0 && (
+            <div className="flex flex-col gap-3 mt-4">
+              <button
+                onClick={handleVenmoPay}
+                className="w-full bg-[#3d95ce] text-white py-4 px-6 rounded-lg font-bold uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg hover:bg-[#3d95ce]/90 transition-all active:scale-[0.98] touch-manipulation"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.7 3H4.3C3.58 3 3 3.58 3 4.3v15.4c0 .72.58 1.3 1.3 1.3h15.4c.72 0 1.3-.58 1.3-1.3V4.3c0-.72-.58-1.3-1.3-1.3zm-3.1 14.2c-.4.5-1.1.8-1.9.8-1.1 0-1.9-.6-2.2-1.6l-2.4-8.8h2.3l1.5 6.4h.1l1.5-6.4h2.2l-2.6 9.6z" />
+                </svg>
+                Pay Host via Venmo
+              </button>
+              {receipt.hostVenmoUsername && (
+                <p className="text-[9px] uppercase text-center opacity-50 font-bold">
+                  Paying to: @{receipt.hostVenmoUsername}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="dotted-line mt-auto"></div>

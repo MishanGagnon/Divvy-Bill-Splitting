@@ -21,6 +21,11 @@ export const createImageWithDraftReceipt = mutation({
       throw new Error("Unauthorized");
     }
 
+    const user = await ctx.db.get(userId);
+    if (!user?.venmoUsername) {
+      throw new Error("Venmo username is required to start a split");
+    }
+
     // Create the image record
     await ctx.db.insert("images", {
       storageId: args.storageId,
@@ -57,6 +62,24 @@ export const currentUser = query({
       return null;
     }
     return await ctx.db.get(userId);
+  },
+});
+
+/**
+ * Update the current user's Venmo username.
+ */
+export const updateVenmoUsername = mutation({
+  args: {
+    venmoUsername: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    await ctx.db.patch(userId, {
+      venmoUsername: args.venmoUsername,
+    });
   },
 });
 
@@ -623,6 +646,7 @@ export const getReceiptWithItems = query({
         currency: v.optional(v.string()),
         authedParticipants: v.optional(v.array(v.id("users"))),
         tipConfirmed: v.optional(v.boolean()),
+        hostVenmoUsername: v.optional(v.string()),
         participants: v.optional(
           v.array(
             v.object({
@@ -723,6 +747,8 @@ export const getReceiptWithItems = query({
       }
     }
 
+    const hostUser = await ctx.db.get(receipt.hostUserId);
+
     return {
       receipt: {
         _id: receipt._id,
@@ -741,6 +767,7 @@ export const getReceiptWithItems = query({
         currency: receipt.currency,
         authedParticipants: receipt.authedParticipants,
         tipConfirmed: receipt.tipConfirmed,
+        hostVenmoUsername: hostUser?.venmoUsername,
         participants: resolvedParticipants,
       },
       items: itemsWithUserNames,
@@ -822,6 +849,7 @@ export const getImageWithReceipt = query({
           currency: v.optional(v.string()),
           authedParticipants: v.optional(v.array(v.id("users"))),
           tipConfirmed: v.optional(v.boolean()),
+          hostVenmoUsername: v.optional(v.string()),
           participants: v.optional(
             v.array(
               v.object({
@@ -887,6 +915,7 @@ export const getImageWithReceipt = query({
     let resolvedParticipants: Array<{ userId: Id<"users">; userName: string }> | undefined = undefined;
 
     if (receipt) {
+      const hostUser = await ctx.db.get(receipt.hostUserId);
       const receiptItems = await ctx.db
         .query("receiptItems")
         .withIndex("by_receipt", (q) => q.eq("receiptId", receipt._id))
@@ -930,6 +959,34 @@ export const getImageWithReceipt = query({
           };
         })
       );
+
+      return {
+        image: {
+          _id: image._id,
+          storageId: image.storageId,
+          uploadedAt: image.uploadedAt,
+        },
+        imageUrl,
+        receipt: {
+          _id: receipt._id,
+          createdAt: receipt.createdAt,
+          merchantName: receipt.merchantName,
+          date: receipt.date,
+          totalCents: receipt.totalCents,
+          taxCents: receipt.taxCents,
+          tipCents: receipt.tipCents,
+          hostUserId: receipt.hostUserId,
+          status: receipt.status,
+          title: receipt.title,
+          joinCode: receipt.joinCode,
+          currency: receipt.currency,
+          authedParticipants: receipt.authedParticipants,
+          tipConfirmed: receipt.tipConfirmed,
+          hostVenmoUsername: hostUser?.venmoUsername,
+          participants: resolvedParticipants,
+        },
+        items,
+      };
     }
 
     return {
@@ -939,25 +996,7 @@ export const getImageWithReceipt = query({
         uploadedAt: image.uploadedAt,
       },
       imageUrl,
-      receipt: receipt
-        ? {
-            _id: receipt._id,
-            createdAt: receipt.createdAt,
-            merchantName: receipt.merchantName,
-            date: receipt.date,
-            totalCents: receipt.totalCents,
-            taxCents: receipt.taxCents,
-            tipCents: receipt.tipCents,
-            hostUserId: receipt.hostUserId,
-            status: receipt.status,
-            title: receipt.title,
-            joinCode: receipt.joinCode,
-            currency: receipt.currency,
-            authedParticipants: receipt.authedParticipants,
-            tipConfirmed: receipt.tipConfirmed,
-            participants: resolvedParticipants,
-          }
-        : null,
+      receipt: null,
       items,
     };
   },

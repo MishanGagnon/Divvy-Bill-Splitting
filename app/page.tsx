@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { ImageUpload } from "@/components/ImageUpload";
+import { VenmoModal } from "@/components/VenmoModal";
 
 export default function Home() {
   return (
@@ -156,10 +157,10 @@ function SignOutButton() {
 // }
 
 function Content() {
-  const { viewer } = useQuery(api.myFunctions.listNumbers, { count: 1 }) ?? {};
+  const user = useQuery(api.receipt.currentUser);
   const [selectedAction, setSelectedAction] = useState<"join" | "start" | null>(null);
 
-  if (viewer === undefined) {
+  if (user === undefined) {
     return (
       <div className="flex flex-col items-center gap-4 py-12">
         <div className="flex items-center gap-2">
@@ -169,11 +170,13 @@ function Content() {
     );
   }
 
+  const viewerName = user?.name || user?.email || "Anonymous";
+
   return (
     <div className="flex flex-col gap-8 w-full">
       <div className="flex flex-col gap-1 text-center">
         <h2 className="font-bold text-sm uppercase tracking-wide">
-          Welcome, {viewer ?? "Anonymous"}
+          Welcome, {viewerName}
         </h2>
         <p className="text-xs opacity-60 leading-relaxed italic">
           &quot;Join a friend's split or start a new one below.&quot;
@@ -187,7 +190,10 @@ function Content() {
       ) : selectedAction === "join" ? (
         <JoinSection onBack={() => setSelectedAction(null)} />
       ) : (
-        <StartSplitSection onBack={() => setSelectedAction(null)} />
+        <StartSplitSection 
+          onBack={() => setSelectedAction(null)} 
+          hasVenmo={!!user?.venmoUsername}
+        />
       )}
 
       <div className="dotted-line"></div>
@@ -266,7 +272,14 @@ function JoinSection({ onBack }: { onBack: () => void }) {
   );
 }
 
-function StartSplitSection({ onBack }: { onBack: () => void }) {
+function StartSplitSection({ onBack, hasVenmo }: { onBack: () => void; hasVenmo: boolean }) {
+  const [isVenmoModalOpen, setIsVenmoModalOpen] = useState(!hasVenmo);
+
+  // If hasVenmo becomes true (from a background refetch), close the modal
+  if (hasVenmo && isVenmoModalOpen) {
+    setIsVenmoModalOpen(false);
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-between items-center">
@@ -280,7 +293,36 @@ function StartSplitSection({ onBack }: { onBack: () => void }) {
           [ BACK ]
         </button>
       </div>
-      <ImageUpload />
+      
+      {!hasVenmo ? (
+        <div className="flex flex-col gap-6 items-center py-10 border-2 border-dashed border-ink/10">
+          <div className="text-center space-y-2 px-4">
+            <p className="text-[10px] uppercase font-bold tracking-widest opacity-70">
+              Setup Required
+            </p>
+            <p className="text-[10px] uppercase opacity-50 leading-relaxed italic">
+              "You'll need to set your Venmo handle before you can start receiving payments from this split."
+            </p>
+          </div>
+          <button
+            onClick={() => setIsVenmoModalOpen(true)}
+            className="bg-ink text-paper px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:opacity-90 transition-all shadow-md"
+          >
+            [ ADD VENMO USERNAME ]
+          </button>
+        </div>
+      ) : (
+        <ImageUpload />
+      )}
+
+      <VenmoModal 
+        isOpen={isVenmoModalOpen} 
+        onClose={() => {
+          setIsVenmoModalOpen(false);
+          if (!hasVenmo) onBack(); // Go back if they cancel without setting it
+        }}
+        onSuccess={() => setIsVenmoModalOpen(false)}
+      />
     </div>
   );
 }
