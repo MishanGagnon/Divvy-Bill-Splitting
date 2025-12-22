@@ -438,37 +438,6 @@ export default function ReceiptDetailPage() {
           </div>
         ) : isParsed ? (
           <div className="flex flex-col gap-6">
-            {/* Summary */}
-            <div className="flex flex-col gap-2">
-              <div className="receipt-item-row text-xs uppercase opacity-70">
-                <span>Subtotal</span>
-                <span>
-                  {formatCurrency(
-                    receipt.totalCents !== undefined &&
-                      receipt.taxCents !== undefined
-                      ? receipt.totalCents -
-                          receipt.taxCents -
-                          (receipt.tipCents || 0)
-                      : undefined
-                  )}
-                </span>
-              </div>
-              <div className="receipt-item-row text-xs uppercase opacity-70">
-                <span>Tax</span>
-                <span>{formatCurrency(receipt.taxCents)}</span>
-              </div>
-              <div className="receipt-item-row text-xs uppercase opacity-70">
-                <span>Tip</span>
-                <span>{formatCurrency(receipt.tipCents)}</span>
-              </div>
-              <div className="receipt-item-row text-lg font-bold uppercase mt-2 border-t-4 border-ink/10 pt-2">
-                <span>Total</span>
-                <span>{formatCurrency(receipt.totalCents)}</span>
-              </div>
-            </div>
-
-            <div className="dotted-line"></div>
-
             {/* Items */}
             <div className="flex flex-col gap-4">
               <h3 className="text-xs font-bold uppercase tracking-widest text-center">
@@ -498,23 +467,23 @@ export default function ReceiptDetailPage() {
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => toggleClaim({ itemId: item._id })}
-                              className={`text-[9px] font-black tracking-tighter px-1.5 py-0.5 border-2 transition-all ${
+                              className={`text-[11px] font-black tracking-tighter px-2 py-0.5 border-2 transition-all ${
                                 isClaimedByUser
                                   ? "border-ink bg-ink text-paper hover:opacity-90"
                                   : "border-dotted border-ink/40 text-ink/60 hover:border-solid hover:border-ink hover:text-ink"
                               }`}
                             >
-                              {isClaimedByUser ? "[ UNCLAIM ]" : "[ CLAIM ]"}
+                              {isClaimedByUser ? "UNCLAIM" : "CLAIM"}
                             </button>
                             <button
                               onClick={() => setSplittingItemId(splittingItemId === item._id ? null : item._id)}
-                              className={`text-[9px] font-black tracking-tighter px-1.5 py-0.5 border-2 transition-all ${
+                              className={`text-[11px] font-black tracking-tighter px-2 py-0.5 border-2 transition-all ${
                                 splittingItemId === item._id
                                   ? "border-ink bg-ink text-paper"
                                   : "border-ink/40 text-ink/60 hover:border-ink hover:text-ink"
                               }`}
                             >
-                              [ SPLIT ]
+                              SPLIT
                             </button>
                           </div>
                           <span className="text-right">{formatCurrency(totalItemPriceCents)}</span>
@@ -531,9 +500,9 @@ export default function ReceiptDetailPage() {
                         {/* Claimed Names Display */}
                         {item.claimedBy && item.claimedBy.length > 0 && (
                           <div className="flex flex-wrap gap-x-2 gap-y-0.5 ml-8 mt-0.5">
-                            <span className="text-[9px] uppercase font-bold opacity-30">Claimed by:</span>
+                            <span className="text-[10px] uppercase font-bold opacity-30">Claimed by:</span>
                             {item.claimedBy.map((claim, idx) => (
-                              <span key={idx} className="text-[9px] uppercase font-bold opacity-60">
+                              <span key={idx} className="text-[10px] uppercase font-bold opacity-60">
                                 {claim.userName}{idx < (item.claimedBy?.length || 0) - 1 ? "," : ""}
                               </span>
                             ))}
@@ -547,9 +516,9 @@ export default function ReceiptDetailPage() {
                               <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">Split With Participants:</p>
                               <button 
                                 onClick={() => setSplittingItemId(null)}
-                                className="text-[9px] font-black uppercase underline hover:opacity-70"
+                                className="text-[11px] font-black uppercase underline hover:opacity-70"
                               >
-                                [ DONE ]
+                                DONE
                               </button>
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -557,7 +526,7 @@ export default function ReceiptDetailPage() {
                                 <button
                                   key={p.userId}
                                   onClick={() => toggleParticipantClaim({ itemId: item._id, userId: p.userId })}
-                                  className={`text-[9px] font-black tracking-tighter px-2 py-1 border-2 transition-all ${
+                                  className={`text-[11px] font-black tracking-tighter px-2 py-1 border-2 transition-all ${
                                     item.claimedBy?.some(c => c.userId === p.userId)
                                       ? "border-ink bg-ink text-paper"
                                       : "border-ink/20 text-ink/40 hover:border-ink/40 hover:text-ink/60"
@@ -578,6 +547,37 @@ export default function ReceiptDetailPage() {
                   No line items detected
                 </p>
               )}
+            </div>
+
+            <div className="dotted-line"></div>
+
+            {/* Summary */}
+            <div className="flex flex-col gap-2">
+              <div className="receipt-item-row text-xs uppercase opacity-70">
+                <span>Subtotal</span>
+                <span>
+                  {formatCurrency(
+                    receipt.totalCents !== undefined &&
+                      receipt.taxCents !== undefined
+                      ? receipt.totalCents -
+                          receipt.taxCents -
+                          (receipt.tipCents || 0)
+                      : undefined
+                  )}
+                </span>
+              </div>
+              <div className="receipt-item-row text-xs uppercase opacity-70">
+                <span>Tax</span>
+                <span>{formatCurrency(receipt.taxCents)}</span>
+              </div>
+              <div className="receipt-item-row text-xs uppercase opacity-70">
+                <span>Tip</span>
+                <span>{formatCurrency(receipt.tipCents)}</span>
+              </div>
+              <div className="receipt-item-row text-lg font-bold uppercase mt-2 border-t-4 border-ink/10 pt-2">
+                <span>Total</span>
+                <span>{formatCurrency(receipt.totalCents)}</span>
+              </div>
             </div>
           </div>
         ) : (
