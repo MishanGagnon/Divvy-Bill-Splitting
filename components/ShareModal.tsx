@@ -20,7 +20,7 @@ export function ShareModal({ isOpen, onClose, url, shareCode }: ShareModalProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-      <div className="w-full max-w-sm receipt-paper jagged-top jagged-bottom p-8 flex flex-col gap-6 shadow-2xl border-2 border-ink relative">
+      <div className="w-full max-w-sm receipt-paper jagged-top jagged-bottom p-8 flex flex-col gap-6 shadow-2xl relative">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-xs font-bold uppercase opacity-50 hover:opacity-100"
@@ -28,11 +28,15 @@ export function ShareModal({ isOpen, onClose, url, shareCode }: ShareModalProps)
           [ X ]
         </button>
 
-        <div className="text-center space-y-4">
-          <h2 className="text-lg font-bold uppercase tracking-widest">
-            Share Receipt
-          </h2>
-          <p className="text-xs uppercase opacity-60 leading-relaxed">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center gap-2 w-full">
+            <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+            <h2 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
+              Share Receipt
+            </h2>
+            <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+          </div>
+          <p className="text-xs uppercase opacity-60 leading-relaxed text-center">
             Scan the QR code or share the code below to join this split.
             <br />
             <span className="text-[9px] italic font-bold">Expires in 30 minutes</span>
@@ -62,8 +66,6 @@ export function ShareModal({ isOpen, onClose, url, shareCode }: ShareModalProps)
             </div>
           </div>
         </div>
-
-        <div className="dotted-line"></div>
 
         <div className="flex flex-col gap-3">
           <button

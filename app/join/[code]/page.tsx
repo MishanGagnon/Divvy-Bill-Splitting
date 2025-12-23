@@ -36,21 +36,23 @@ export default function JoinCodePage() {
   if (receiptId === null) {
     return (
       <main className="min-h-screen py-12 px-4 flex justify-center bg-background">
-        <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-8 flex flex-col items-center gap-8">
-          <div className="text-center space-y-4 py-8">
-            <h1 className="text-xl font-bold uppercase tracking-widest">
-              Invalid or Expired Code
-            </h1>
-            <p className="text-xs uppercase opacity-60 leading-relaxed max-w-[250px] mx-auto">
+        <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-8 flex flex-col gap-8">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2 w-full">
+              <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+              <h1 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
+                Invalid or Expired Code
+              </h1>
+              <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+            </div>
+            <p className="text-xs uppercase opacity-60 leading-relaxed max-w-[250px] mx-auto text-center">
               This share code is no longer active. Codes expire 30 minutes after generation.
             </p>
           </div>
           
-          <div className="dotted-line"></div>
-          
           <Link
             href="/"
-            className="border-2 border-ink px-8 py-3 text-xs font-bold uppercase tracking-widest hover:bg-ink hover:text-paper transition-all"
+            className="border-2 border-ink px-8 py-3 text-xs font-bold uppercase tracking-widest hover:bg-ink hover:text-paper transition-all text-center"
           >
             Return to Terminal
           </Link>

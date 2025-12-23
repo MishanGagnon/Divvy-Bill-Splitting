@@ -187,7 +187,7 @@ export default function PersonalReceiptPage() {
           )}
         </div>
 
-        {/* Content Section */}
+          {/* Content Section */}
         <div className="flex flex-col gap-6">
           {/* Tip Confirmation Warning */}
           {receipt && !receipt.tipConfirmed && (
@@ -222,24 +222,28 @@ export default function PersonalReceiptPage() {
 
           {/* Items */}
           <div className="flex flex-col gap-4">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-center">
-              --- Your Items ---
-            </h3>
-            
-            {/* Claimed Progress Bar */}
-            {totalSubtotalCents > 0 && (
-              <div className="flex flex-col gap-2 w-full">
-                <ClaimedProgressBar
-                  claimedAmountCents={claimedAmountCents}
-                  totalAmountCents={totalSubtotalCents}
-                  label=""
-                  showAmounts={true}
-                  minBarWidth={20}
-                />
+              {/* Claimed Progress Bar */}
+              {totalSubtotalCents > 0 && (
+                <div className="flex flex-col gap-2 w-full">
+                  <ClaimedProgressBar
+                    claimedAmountCents={claimedAmountCents}
+                    totalAmountCents={totalSubtotalCents}
+                    label="PROGRESS"
+                    showAmounts={true}
+                    minBarWidth={20}
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
+                  Your Items
+                </h3>
+                <div className="flex-1 border-t border-ink/20 border-dashed"></div>
               </div>
-            )}
-            
-            {personalItems.length > 0 ? (
+              
+              {personalItems.length > 0 ? (
               <div className="flex flex-col gap-3">
                 {personalItems.map((item) => {
                   const itemSubtotal = (item.priceCents || 0) + (item.modifiers?.reduce((s, m) => s + (m.priceCents || 0), 0) || 0);
@@ -280,7 +284,13 @@ export default function PersonalReceiptPage() {
             )}
           </div>
 
-          <div className="dotted-line" style={{ opacity: 0.3 }}></div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
+              Summary
+            </h3>
+            <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+          </div>
 
           {/* Summary */}
           <div className="flex flex-col gap-2">

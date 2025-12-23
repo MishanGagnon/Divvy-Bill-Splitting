@@ -285,7 +285,7 @@ export default function ReceiptDetailPage() {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col gap-6 shadow-2xl border-2 border-red-600">
+          <div className="w-full max-w-sm receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col gap-6 shadow-2xl">
             <div className="text-center space-y-4">
               <h2 className="text-lg font-bold uppercase tracking-widest text-red-600">
                 Delete Receipt?
@@ -318,7 +318,7 @@ export default function ReceiptDetailPage() {
       {/* Join Modal */}
       {needsToJoin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col gap-6 shadow-2xl border-2 border-ink">
+          <div className="w-full max-w-sm receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col gap-6 shadow-2xl">
             <div className="text-center space-y-4">
               <h2 className="text-lg font-bold uppercase tracking-widest">
                 Join this Split?
@@ -401,7 +401,6 @@ export default function ReceiptDetailPage() {
               ))}
             </div>
           )}
-          <div className="dotted-line"></div>
         </div>
 
         {/* Image Section */}
@@ -409,13 +408,11 @@ export default function ReceiptDetailPage() {
           <>
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">
+                <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+                <span className="text-[10px] font-bold uppercase tracking-widest opacity-70 whitespace-nowrap">
                   Receipt Image
                 </span>
-                <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
+                <div className="flex-1 border-t border-ink/20 border-dashed"></div>
               </div>
               
               <div className="border border-ink/20 p-1 bg-paper">
@@ -442,7 +439,6 @@ export default function ReceiptDetailPage() {
                 </p>
               )}
             </div>
-            <div className="dotted-line"></div>
           </>
         )}
 
@@ -538,26 +534,30 @@ export default function ReceiptDetailPage() {
             )}
 
             {/* Items */}
-            <div className="flex flex-col gap-4">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-center">
-                --- Items ---
-              </h3>
-              
+            <div className="flex flex-col gap-6">
               {/* Claimed Progress Bar */}
               {isParsed && totalSubtotalCents > 0 && (
-                <div className="flex flex-col gap-2 w-full">
-                  <ClaimedProgressBar
-                    claimedAmountCents={claimedAmountCents}
-                    totalAmountCents={totalSubtotalCents}
-                    label=""
-                    showAmounts={true}
-                    minBarWidth={20}
-                  />
-                </div>
-              )}
+              <div className="flex flex-col gap-3 w-full">
+                <ClaimedProgressBar
+                  claimedAmountCents={claimedAmountCents}
+                  totalAmountCents={totalSubtotalCents}
+                  label="PROGRESS"
+                  showAmounts={true}
+                  minBarWidth={20}
+                />
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
+                Items
+              </h3>
+              <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+            </div>
               
               {items.length > 0 ? (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-6">
                   {items.map((item) => {
                     const totalItemPriceCents =
                       (item.priceCents || 0) +
@@ -571,7 +571,7 @@ export default function ReceiptDetailPage() {
                     );
 
                     return (
-                      <div key={item._id} className="flex flex-col gap-2">
+                      <div key={item._id} className="flex flex-col gap-3">
                         {/* Mobile: Stacked with indentation | Desktop: Grid */}
                         <div className="flex flex-col sm:grid sm:grid-cols-[1.5rem_1fr_auto_4.5rem] sm:gap-2 sm:items-center text-xs uppercase">
                           
@@ -589,7 +589,7 @@ export default function ReceiptDetailPage() {
                           </div>
 
                           {/* Sub-section: Modifiers, Actions, Claimants (Indented on Mobile) */}
-                          <div className="ml-9 flex flex-col gap-2 mt-1 sm:mt-0 sm:ml-0 sm:pl-0 sm:border-l-0 sm:contents">
+                          <div className="ml-9 flex flex-col gap-2.5 mt-1.5 sm:mt-0 sm:ml-0 sm:pl-0 sm:border-l-0 sm:contents">
                             
                             {/* Actions (Indented on Mobile | Column 3 on Desktop) */}
                             <div className="flex items-center gap-1 sm:order-3">
@@ -640,7 +640,7 @@ export default function ReceiptDetailPage() {
 
                         {/* Split Selector UI (Always indented) */}
                         {splittingItemId === item._id && (
-                          <div className="mt-2 ml-9 p-3 border-2 border-dashed border-ink/20 flex flex-col gap-3 bg-paper">
+                          <div className="mt-4 ml-9 p-3 border-2 border-dashed border-ink/20 flex flex-col gap-3 bg-paper">
                             <div className="flex justify-between items-center">
                               <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">Split With Participants:</p>
                               <button 
@@ -678,7 +678,13 @@ export default function ReceiptDetailPage() {
               )}
             </div>
 
-            <div className="dotted-line"></div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
+                Summary
+              </h3>
+              <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+            </div>
 
             {/* Summary */}
             <div className="flex flex-col gap-2">

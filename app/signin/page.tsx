@@ -28,11 +28,15 @@ export default function SignIn() {
 
         {/* Content */}
         <div className="flex flex-col gap-6">
-          <div className="text-center space-y-2">
-            <h2 className="text-lg font-bold uppercase">
-              {flow === "signIn" ? "*** Authentication ***" : "*** Registration ***"}
-            </h2>
-            <p className="text-[10px] uppercase opacity-60 leading-relaxed italic">
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex items-center gap-2 w-full">
+              <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+              <h2 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
+                {flow === "signIn" ? "Authentication" : "Registration"}
+              </h2>
+              <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+            </div>
+            <p className="text-[10px] uppercase opacity-60 leading-relaxed italic text-center">
               Access the digital ledger to manage your receipts
             </p>
           </div>

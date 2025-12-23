@@ -115,8 +115,6 @@ function Content() {
         />
       )}
 
-      <div className="dotted-line"></div>
-
       <ReceiptList />
     </div>
   );
@@ -212,9 +210,13 @@ function JoinSection({ onBack }: { onBack: () => void }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-xs font-bold uppercase tracking-widest">
-          --- Join a Split ---
-        </h3>
+        <div className="flex items-center gap-2 flex-1 mr-4">
+          <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+          <h3 className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap opacity-70">
+            Join a Split
+          </h3>
+          <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+        </div>
         <button
           onClick={onBack}
           className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 transition-opacity whitespace-nowrap"
@@ -266,9 +268,13 @@ function StartSplitSection({ onBack, hasVenmo }: { onBack: () => void; hasVenmo:
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-xs font-bold uppercase tracking-widest">
-          --- Start a New Split ---
-        </h3>
+        <div className="flex items-center gap-2 flex-1 mr-4">
+          <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+          <h3 className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap opacity-70">
+            Start a New Split
+          </h3>
+          <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+        </div>
         <button
           onClick={onBack}
           className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 transition-opacity whitespace-nowrap"
@@ -324,9 +330,13 @@ function ReceiptList() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h3 className="text-xs font-bold uppercase tracking-widest text-center">
-        --- Recent Transactions ---
-      </h3>
+      <div className="flex items-center gap-2">
+        <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+        <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
+          Recent Transactions
+        </h3>
+        <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+      </div>
       {receipts.length === 0 ? (
         <p className="text-[10px] uppercase opacity-40 text-center italic py-4">
           No transactions detected
