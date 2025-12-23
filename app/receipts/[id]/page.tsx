@@ -551,7 +551,7 @@ export default function ReceiptDetailPage() {
                     totalAmountCents={totalSubtotalCents}
                     label=""
                     showAmounts={true}
-                    barWidth={20}
+                    minBarWidth={20}
                   />
                 </div>
               )}
