@@ -88,7 +88,7 @@ export function ClaimedProgressBar({
         </p>
       )}
 
-      <div className="flex items-center text-[10px] uppercase font-mono w-full">
+      <div className="flex items-center text-[10px] uppercase font-mono w-full mb-2">
         <span className="opacity-60 flex-shrink-0 whitespace-nowrap mr-2">
           progress
         </span>
