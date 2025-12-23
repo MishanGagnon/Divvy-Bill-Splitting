@@ -367,11 +367,17 @@ function ReceiptList() {
               <div className="flex justify-between items-center text-[9px] uppercase tracking-tighter opacity-50">
                 <div className="flex gap-2">
                   <span>{receipt.date || new Date(receipt.createdAt).toLocaleDateString()}</span>
-                  <span className="text-ink font-bold">
+                  <span className={`font-bold ${
+                    receipt.isUploadedByMe 
+                      ? 'text-ink' 
+                      : 'text-ink/60'
+                  }`}>
                     {receipt.isUploadedByMe && receipt.isClaimedByMe
                       ? "[ HOST + CLAIMED ]"
                       : receipt.isUploadedByMe
                       ? "[ HOST ]"
+                      : receipt.isParticipantByMe
+                      ? "[ PARTICIPANT ]"
                       : receipt.isClaimedByMe
                       ? "[ CLAIMED ]"
                       : "[ JOINED ]"}
