@@ -111,7 +111,7 @@ export default function SignIn() {
                 </p>
                 <button
                   type="button"
-                  className="text-xs font-bold uppercase underline hover:opacity-70 transition-opacity cursor-pointer"
+                  className="text-xs font-bold uppercase underline hover:opacity-70 transition-opacity cursor-pointer whitespace-nowrap"
                   onClick={() => setFlow(flow === "signIn" ? "signUp" : "signIn")}
                 >
                   {flow === "signIn" ? "[ Create Account ]" : "[ Sign In Instead ]"}

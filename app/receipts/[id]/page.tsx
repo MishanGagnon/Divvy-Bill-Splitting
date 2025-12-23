@@ -141,8 +141,8 @@ export default function ReceiptDetailPage() {
   // Loading state
   if (data === undefined) {
     return (
-      <div className="min-h-screen bg-background py-12 px-4 flex justify-center">
-        <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-8 flex flex-col items-center justify-center min-h-[400px]">
+      <div className="min-h-screen bg-background py-6 sm:py-12 px-2 sm:px-4 flex justify-center">
+        <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col items-center justify-center min-h-[400px]">
           <div className="flex flex-col items-center gap-4 animate-pulse">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -171,11 +171,11 @@ export default function ReceiptDetailPage() {
   // Not found state
   if (data === null) {
     return (
-      <div className="min-h-screen bg-background py-12 px-4 flex justify-center">
-        <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-8 flex flex-col items-center gap-6">
+      <div className="min-h-screen bg-background py-6 sm:py-12 px-2 sm:px-4 flex justify-center">
+        <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col items-center gap-6">
           <Link
             href="/"
-            className="self-start text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 mb-4"
+            className="self-start text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 mb-4 whitespace-nowrap"
           >
             [ &lt;&lt; BACK ]
           </Link>
@@ -253,7 +253,7 @@ export default function ReceiptDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4 flex justify-center">
+    <div className="min-h-screen bg-background py-6 sm:py-12 px-2 sm:px-4 flex justify-center">
       {/* Share Modal */}
       <ShareModal
         isOpen={isShareModalOpen}
@@ -265,7 +265,7 @@ export default function ReceiptDetailPage() {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm receipt-paper jagged-top jagged-bottom p-8 flex flex-col gap-6 shadow-2xl border-2 border-red-600">
+          <div className="w-full max-w-sm receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col gap-6 shadow-2xl border-2 border-red-600">
             <div className="text-center space-y-4">
               <h2 className="text-lg font-bold uppercase tracking-widest text-red-600">
                 Delete Receipt?
@@ -279,7 +279,7 @@ export default function ReceiptDetailPage() {
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={isDeleting}
-                className="border-2 border-ink py-3 text-xs font-bold uppercase tracking-widest hover:bg-ink/5 transition-all"
+                className="border-2 border-ink py-3 text-xs font-bold uppercase tracking-widest hover:bg-ink/5 transition-all whitespace-nowrap"
               >
                 [ CANCEL ]
               </button>
@@ -298,7 +298,7 @@ export default function ReceiptDetailPage() {
       {/* Join Modal */}
       {needsToJoin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm receipt-paper jagged-top jagged-bottom p-8 flex flex-col gap-6 shadow-2xl border-2 border-ink">
+          <div className="w-full max-w-sm receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col gap-6 shadow-2xl border-2 border-ink">
             <div className="text-center space-y-4">
               <h2 className="text-lg font-bold uppercase tracking-widest">
                 Join this Split?
@@ -312,7 +312,7 @@ export default function ReceiptDetailPage() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => router.push("/")}
-                className="border-2 border-ink py-3 text-xs font-bold uppercase tracking-widest hover:bg-ink/5 transition-all"
+                className="border-2 border-ink py-3 text-xs font-bold uppercase tracking-widest hover:bg-ink/5 transition-all whitespace-nowrap"
               >
                 [ NO ]
               </button>
@@ -328,13 +328,13 @@ export default function ReceiptDetailPage() {
         </div>
       )}
 
-      <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-8 flex flex-col gap-6">
+      <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col gap-6">
         {/* Header */}
           <div className="flex flex-col items-center gap-2">
             <div className="w-full flex justify-between items-center mb-4">
               <Link
                 href="/"
-                className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100"
+                className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 whitespace-nowrap"
               >
                 [ {"<<"} BACK ]
               </Link>
@@ -344,7 +344,7 @@ export default function ReceiptDetailPage() {
                     onClick={handleReparse}
                     disabled={isCurrentlyParsing}
                     title="Reparse Receipt"
-                    className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer disabled:opacity-30 flex items-center gap-1"
+                    className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer disabled:opacity-30 flex items-center gap-1 whitespace-nowrap"
                   >
                     [ REPARSE ]
                   </button>
@@ -352,14 +352,14 @@ export default function ReceiptDetailPage() {
                 <button
                   onClick={handleShareClick}
                   disabled={isGeneratingCode}
-                  className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer disabled:opacity-30"
+                  className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer disabled:opacity-30 whitespace-nowrap"
                 >
                   {isGeneratingCode ? "[ ... ]" : "[ SHARE ]"}
                 </button>
                 {isHost && (
                   <button
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="text-[10px] font-bold uppercase underline text-red-600/50 hover:text-red-600 cursor-pointer"
+                    className="text-[10px] font-bold uppercase underline text-red-600/50 hover:text-red-600 cursor-pointer whitespace-nowrap"
                   >
                     [ DELETE ]
                   </button>
@@ -380,7 +380,7 @@ export default function ReceiptDetailPage() {
                 <div
                   key={idx}
                   title={p.userName}
-                  className={`text-[9px] font-black tracking-tighter px-2 py-0.5 border-2 ${
+                  className={`text-[9px] font-black tracking-tighter px-2 py-0.5 border-2 whitespace-nowrap ${
                     p.userId === user?._id
                       ? "border-ink bg-ink text-paper"
                       : "border-ink/20 text-ink/40"
@@ -403,7 +403,7 @@ export default function ReceiptDetailPage() {
             {isParsed && (
               <button
                 onClick={() => setIsImageCollapsed(!isImageCollapsed)}
-                className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer"
+                className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer whitespace-nowrap"
               >
                 [ {isImageCollapsed ? "SHOW IMAGE" : "HIDE IMAGE"} ]
               </button>
@@ -427,7 +427,7 @@ export default function ReceiptDetailPage() {
             </div>
             <button
                 onClick={() => setIsImageCollapsed(!isImageCollapsed)}
-                className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer"
+                className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer whitespace-nowrap"
               >
                 [ {isImageCollapsed ? "SHOW IMAGE" : "HIDE IMAGE"} ]
               </button>
@@ -538,14 +538,14 @@ export default function ReceiptDetailPage() {
                   <button
                     onClick={() => handleConfirmTip()}
                     disabled={isConfirmingTip}
-                    className="bg-yellow-600 text-white px-4 py-2 text-[10px] font-bold uppercase hover:bg-yellow-700 transition-all disabled:opacity-50"
+                    className="bg-yellow-600 text-white px-4 py-2 text-[10px] font-bold uppercase hover:bg-yellow-700 transition-all disabled:opacity-50 whitespace-nowrap"
                   >
                     {isConfirmingTip ? "CONFIRMING..." : "[ YES, CONFIRM ]"}
                   </button>
                   <button
                     onClick={handleAdjustTip}
                     disabled={isConfirmingTip}
-                    className="border-2 border-yellow-600 text-yellow-700 px-4 py-2 text-[10px] font-bold uppercase hover:bg-yellow-50 transition-all disabled:opacity-50"
+                    className="border-2 border-yellow-600 text-yellow-700 px-4 py-2 text-[10px] font-bold uppercase hover:bg-yellow-50 transition-all disabled:opacity-50 whitespace-nowrap"
                   >
                     [ NO, ADJUST ]
                   </button>
@@ -706,7 +706,7 @@ export default function ReceiptDetailPage() {
                   {isParsed && isHost && !isAddingTip && (
                     <button
                       onClick={() => setIsAddingTip(true)}
-                      className="text-[9px] font-bold uppercase underline opacity-50 hover:opacity-100"
+                      className="text-[9px] font-bold uppercase underline opacity-50 hover:opacity-100 whitespace-nowrap"
                     >
                       [ {receipt.tipConfirmed ? "EDIT TIP" : "EDIT"} ]
                     </button>
@@ -722,7 +722,7 @@ export default function ReceiptDetailPage() {
                     </p>
                     <button
                       onClick={() => setIsAddingTip(false)}
-                      className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100"
+                      className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 whitespace-nowrap"
                     >
                       [ CANCEL ]
                     </button>
@@ -752,7 +752,7 @@ export default function ReceiptDetailPage() {
                         value={customTipValue}
                         onChange={(e) => setCustomTipValue(e.target.value)}
                         placeholder="0.00"
-                        className="flex-1 bg-transparent border-b-2 border-ink/20 focus:border-ink outline-none text-base font-mono py-1 px-2"
+                        className="flex-1 min-w-0 bg-transparent border-b-2 border-ink/20 focus:border-ink outline-none text-base font-mono py-1 px-2"
                       />
                       <button
                         onClick={() => {
@@ -766,7 +766,7 @@ export default function ReceiptDetailPage() {
                           handleConfirmTip(cents);
                         }}
                         disabled={isConfirmingTip || !customTipValue}
-                        className="bg-ink text-paper px-4 py-1 text-[10px] font-bold uppercase hover:opacity-90 transition-all disabled:opacity-30"
+                        className="bg-ink text-paper px-4 py-1 text-[10px] font-bold uppercase hover:opacity-90 transition-all disabled:opacity-30 whitespace-nowrap"
                       >
                         SET
                       </button>

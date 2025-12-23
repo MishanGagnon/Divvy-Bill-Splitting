@@ -35,8 +35,8 @@ export default function PersonalReceiptPage() {
 
   if (data === undefined || user === undefined) {
     return (
-      <div className="min-h-screen bg-background py-12 px-4 flex justify-center">
-        <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-8 flex flex-col items-center justify-center min-h-[400px]">
+      <div className="min-h-screen bg-background py-6 sm:py-12 px-2 sm:px-4 flex justify-center">
+        <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col items-center justify-center min-h-[400px]">
           <div className="flex flex-col items-center gap-4 animate-pulse">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -64,11 +64,11 @@ export default function PersonalReceiptPage() {
 
   if (data === null) {
     return (
-      <div className="min-h-screen bg-background py-12 px-4 flex justify-center">
-        <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-8 flex flex-col items-center gap-6">
+      <div className="min-h-screen bg-background py-6 sm:py-12 px-2 sm:px-4 flex justify-center">
+        <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col items-center gap-6">
           <Link
             href={`/receipts/${receiptId}`}
-            className="self-start text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 mb-4"
+            className="self-start text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 mb-4 whitespace-nowrap"
           >
             [ {"<<"} BACK TO RECEIPT ]
           </Link>
@@ -128,8 +128,8 @@ export default function PersonalReceiptPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4 flex justify-center">
-      <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-8 flex flex-col gap-6">
+    <div className="min-h-screen bg-background py-6 sm:py-12 px-2 sm:px-4 flex justify-center">
+      <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col items-center gap-2">
           <div className="w-full flex justify-between items-center mb-4">

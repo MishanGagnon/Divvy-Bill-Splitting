@@ -61,7 +61,7 @@ function SignOutButton() {
     <>
       {isAuthenticated && (
         <button
-          className="uppercase text-xs font-bold underline hover:opacity-70 transition-opacity cursor-pointer"
+          className="uppercase text-xs font-bold underline hover:opacity-70 transition-opacity cursor-pointer whitespace-nowrap"
           onClick={() =>
             void signOut().then(() => {
               router.push("/signin");
@@ -217,7 +217,7 @@ function JoinSection({ onBack }: { onBack: () => void }) {
         </h3>
         <button
           onClick={onBack}
-          className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 transition-opacity"
+          className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 transition-opacity whitespace-nowrap"
         >
           [ BACK ]
         </button>
@@ -271,7 +271,7 @@ function StartSplitSection({ onBack, hasVenmo }: { onBack: () => void; hasVenmo:
         </h3>
         <button
           onClick={onBack}
-          className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 transition-opacity"
+          className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 transition-opacity whitespace-nowrap"
         >
           [ BACK ]
         </button>
@@ -289,7 +289,7 @@ function StartSplitSection({ onBack, hasVenmo }: { onBack: () => void; hasVenmo:
           </div>
           <button
             onClick={() => setIsVenmoModalOpen(true)}
-            className="bg-ink text-paper px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:opacity-90 transition-all shadow-md"
+            className="bg-ink text-paper px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:opacity-90 transition-all shadow-md whitespace-nowrap"
           >
             [ ADD VENMO USERNAME ]
           </button>
@@ -350,7 +350,7 @@ function ReceiptList() {
               <div className="flex justify-between items-center text-[9px] uppercase tracking-tighter opacity-50">
                 <div className="flex gap-2">
                   <span>{receipt.date || new Date(receipt.createdAt).toLocaleDateString()}</span>
-                  <span className={`font-bold ${
+                  <span className={`font-bold whitespace-nowrap ${
                     receipt.isUploadedByMe 
                       ? 'text-ink' 
                       : 'text-ink/60'

@@ -151,7 +151,7 @@ export function ImageUpload() {
               <button
                 onClick={clearImage}
                 disabled={isUploading}
-                className="border-2 border-ink py-3 text-[10px] font-bold uppercase tracking-widest sm:tracking-[0.2em] hover:bg-ink/5 disabled:opacity-50 transition-all"
+                className="border-2 border-ink py-3 text-[10px] font-bold uppercase tracking-widest sm:tracking-[0.2em] hover:bg-ink/5 disabled:opacity-50 transition-all whitespace-nowrap"
               >
                 [ Cancel ]
               </button>
