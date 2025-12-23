@@ -82,5 +82,16 @@ export default defineSchema({
     storageId: v.id("_storage"),
     uploadedBy: v.id("users"),
     uploadedAt: v.number(),
-  }).index("by_user", ["uploadedBy"]),
+  })
+    .index("by_user", ["uploadedBy"])
+    .index("by_storageId", ["storageId"]),
+
+  // NEW: Memberships table for efficient many-to-many relationship
+  memberships: defineTable({
+    userId: v.id("users"),
+    receiptId: v.id("receipts"),
+  })
+    .index("by_user", ["userId"])
+    .index("by_receipt", ["receiptId"])
+    .index("by_user_receipt", ["userId", "receiptId"]),
 });
