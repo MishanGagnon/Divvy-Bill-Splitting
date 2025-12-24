@@ -1,7 +1,8 @@
 import { v } from "convex/values";
-import { query, mutation, action } from "./_generated/server";
+import { query, mutation, action, internalMutation } from "./_generated/server";
 import { api } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { Id } from "./_generated/dataModel";
 
 // Write your Convex functions in any file inside this directory (`convex`).
 // See https://docs.convex.dev/functions for more.
@@ -77,5 +78,53 @@ export const myAction = action({
     await ctx.runMutation(api.myFunctions.addNumber, {
       value: args.first,
     });
+  },
+});
+
+/**
+ * Dev tool: Clear all receipt-related data from the database and storage.
+ * Use with caution!
+ */
+export const clearAllData = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    // 1. Collect all storage IDs from both receipts and images tables
+    const storageIds = new Set<Id<"_storage">>();
+    
+    const receipts = await ctx.db.query("receipts").collect();
+    for (const r of receipts) {
+      if (r.imageID) storageIds.add(r.imageID);
+    }
+
+    const images = await ctx.db.query("images").collect();
+    for (const img of images) {
+      if (img.storageId) storageIds.add(img.storageId);
+    }
+
+    // 2. Delete all files from storage
+    for (const storageId of storageIds) {
+      try {
+        await ctx.storage.delete(storageId);
+      } catch (e) {
+        console.error(`Failed to delete storage file ${storageId}:`, e);
+      }
+    }
+
+    // 3. Delete all records from tables
+    const tables = ["receipts", "images", "receiptItems", "memberships", "shareCodes"] as const;
+    let deletedCount = 0;
+
+    for (const table of tables) {
+      const docs = await ctx.db.query(table).collect();
+      for (const doc of docs) {
+        await ctx.db.delete(doc._id);
+        deletedCount++;
+      }
+    }
+
+    return { 
+      success: true, 
+      message: `Cleared ${storageIds.size} files and ${deletedCount} database records.` 
+    };
   },
 });

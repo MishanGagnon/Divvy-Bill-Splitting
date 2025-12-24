@@ -4,6 +4,7 @@ import { Id } from "./_generated/dataModel";
 import { auth } from "./auth";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
+import { paginationOptsValidator } from "convex/server";
 
 /**
  * Create an image record and a draft receipt in one transaction.
@@ -46,6 +47,8 @@ export const createImageWithDraftReceipt = mutation({
     await ctx.db.insert("memberships", {
       userId,
       receiptId,
+      joinedAt: Date.now(),
+      merchantName: "Processing...",
     });
 
     // Schedule parsing to begin immediately
@@ -127,6 +130,8 @@ export const joinReceipt = mutation({
       await ctx.db.insert("memberships", {
         userId,
         receiptId: args.receiptId,
+        joinedAt: Date.now(),
+        merchantName: receipt.merchantName || "Unknown Merchant",
       });
     }
   },
@@ -249,9 +254,12 @@ export const toggleClaimItem = mutation({
         )
         .unique();
       if (!existingMembership) {
+        const receipt = await ctx.db.get(item.receiptId);
         await ctx.db.insert("memberships", {
           userId,
           receiptId: item.receiptId,
+          joinedAt: Date.now(),
+          merchantName: receipt?.merchantName || "Unknown Merchant",
         });
       }
     } else {
@@ -308,9 +316,12 @@ export const toggleParticipantClaim = mutation({
         )
         .unique();
       if (!existingMembership) {
+        const receipt = await ctx.db.get(item.receiptId);
         await ctx.db.insert("memberships", {
           userId: args.userId,
           receiptId: item.receiptId,
+          joinedAt: Date.now(),
+          merchantName: receipt?.merchantName || "Unknown Merchant",
         });
       }
     }
@@ -527,7 +538,22 @@ export const createReceiptWithItems = internalMutation({
         await ctx.db.insert("memberships", {
           userId: args.hostUserId,
           receiptId: existingReceipt._id,
+          joinedAt: Date.now(),
+          merchantName: args.merchantName || "Unknown Merchant",
         });
+      }
+
+      // Update merchantName on ALL memberships for this receipt to maintain consistency
+      const memberships = await ctx.db
+        .query("memberships")
+        .withIndex("by_receipt", (q) => q.eq("receiptId", existingReceipt._id))
+        .collect();
+      for (const m of memberships) {
+        if (m.merchantName !== args.merchantName) {
+          await ctx.db.patch(m._id, {
+            merchantName: args.merchantName || "Unknown Merchant",
+          });
+        }
       }
 
       const receiptId = existingReceipt._id;
@@ -563,6 +589,8 @@ export const createReceiptWithItems = internalMutation({
     await ctx.db.insert("memberships", {
       userId: args.hostUserId,
       receiptId,
+      joinedAt: Date.now(),
+      merchantName: args.merchantName || "Unknown Merchant",
     });
 
     // Create all line items
@@ -581,63 +609,78 @@ export const createReceiptWithItems = internalMutation({
 });
 
 /**
- * Get all receipts related to the current user (either uploaded or claimed).
+ * Get all receipts related to the current user (either uploaded or claimed) with pagination and optional search.
  */
 export const listUserReceipts = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    paginationOpts: paginationOptsValidator,
+    searchTerm: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    // 1. Get all memberships for this user
-    const memberships = await ctx.db
-      .query("memberships")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-
-    if (memberships.length === 0) return [];
-
-    // 2. Fetch the actual receipts
-    const relevantReceipts = [];
-    for (const membership of memberships) {
-      const receipt = await ctx.db.get(membership.receiptId);
-      if (!receipt) continue;
-
-      const isHost = receipt.hostUserId === userId;
-      const isParticipant = receipt.authedParticipants?.includes(userId);
-
-      // Check if user has claimed any items on this receipt
-      const items = await ctx.db
-        .query("receiptItems")
-        .withIndex("by_receipt", (q) => q.eq("receiptId", receipt._id))
-        .collect();
-      const isClaimant = items.some(item => item.claimedBy?.includes(userId));
-
-      // Find the image ID for the URL link
-      let imageId;
-      if (receipt.imageID) {
-        const image = await ctx.db
-          .query("images")
-          .withIndex("by_storageId", (q) => q.eq("storageId", receipt.imageID!))
-          .first();
-        if (image) imageId = image._id;
-      }
-
-      relevantReceipts.push({
-        _id: receipt._id,
-        imageId,
-        merchantName: receipt.merchantName || "Unknown Merchant",
-        date: receipt.date,
-        totalCents: receipt.totalCents,
-        status: receipt.status,
-        isUploadedByMe: isHost,
-        isClaimedByMe: isClaimant,
-        isParticipantByMe: isParticipant,
-        createdAt: receipt.createdAt,
-      });
+    if (!userId) {
+      return { page: [], isDone: true, continueCursor: "" };
     }
 
-    return relevantReceipts.sort((a, b) => b.createdAt - a.createdAt);
+    // 1. Get paginated memberships for this user
+    const paginatedMemberships = await (args.searchTerm
+      ? ctx.db
+          .query("memberships")
+          .withSearchIndex("search_merchant", (q) =>
+            q.search("merchantName", args.searchTerm!).eq("userId", userId)
+          )
+      : ctx.db
+          .query("memberships")
+          .withIndex("by_user_joinedAt", (q) => q.eq("userId", userId))
+          .order("desc")
+    ).paginate(args.paginationOpts);
+
+    // 2. Fetch the actual receipts and map them
+    const page = await Promise.all(
+      paginatedMemberships.page.map(async (membership) => {
+        const receipt = await ctx.db.get(membership.receiptId);
+        if (!receipt) return null;
+
+        const isHost = receipt.hostUserId === userId;
+        const isParticipant = receipt.authedParticipants?.includes(userId);
+
+        // Check if user has claimed any items on this receipt
+        const items = await ctx.db
+          .query("receiptItems")
+          .withIndex("by_receipt", (q) => q.eq("receiptId", receipt._id))
+          .collect();
+        const isClaimant = items.some((item) => item.claimedBy?.includes(userId));
+
+        // Find the image ID for the URL link
+        let imageId;
+        if (receipt.imageID) {
+          const image = await ctx.db
+            .query("images")
+            .withIndex("by_storageId", (q) => q.eq("storageId", receipt.imageID!))
+            .first();
+          if (image) imageId = image._id;
+        }
+
+        return {
+          _id: receipt._id,
+          imageId,
+          merchantName: receipt.merchantName || "Unknown Merchant",
+          date: receipt.date,
+          totalCents: receipt.totalCents,
+          status: receipt.status,
+          isUploadedByMe: isHost,
+          isClaimedByMe: isClaimant,
+          isParticipantByMe: isParticipant,
+          createdAt: receipt.createdAt,
+          joinedAt: membership.joinedAt,
+        };
+      })
+    );
+
+    return {
+      ...paginatedMemberships,
+      page: page.filter((r): r is NonNullable<typeof r> => r !== null),
+    };
   },
 });
 

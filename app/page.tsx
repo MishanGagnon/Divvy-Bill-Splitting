@@ -9,6 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ImageUpload } from "@/components/ImageUpload";
 import { VenmoModal } from "@/components/VenmoModal";
+import { PaginatedReceiptList } from "@/components/PaginatedReceiptList";
 
 export default function Home() {
   return (
@@ -115,7 +116,7 @@ function Content() {
         />
       )}
 
-      <ReceiptList />
+      <PaginatedReceiptList />
     </div>
   );
 }
@@ -316,74 +317,3 @@ function StartSplitSection({ onBack, hasVenmo }: { onBack: () => void; hasVenmo:
   );
 }
 
-
-function ReceiptList() {
-  const receipts = useQuery(api.receipt.listUserReceipts);
-
-  if (receipts === undefined) {
-    return (
-      <div className="flex flex-col items-center gap-4 py-8 animate-pulse">
-        <p className="text-[10px] uppercase font-bold opacity-50">Retrieving Receipts...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-2">
-        <div className="flex-1 border-t border-ink/20 border-dashed"></div>
-        <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
-          Recent Transactions
-        </h3>
-        <div className="flex-1 border-t border-ink/20 border-dashed"></div>
-      </div>
-      {receipts.length === 0 ? (
-        <p className="text-[10px] uppercase opacity-40 text-center italic py-4">
-          No transactions detected
-        </p>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {receipts.map((receipt) => (
-            <Link
-              key={receipt._id}
-              href={`/receipts/${receipt._id}`}
-              className="flex flex-col gap-1 group overflow-hidden"
-            >
-              <div className="flex justify-between items-baseline gap-2">
-                <span className="text-xs font-bold uppercase group-hover:underline truncate flex-1">
-                  {receipt.merchantName}
-                </span>
-                <span className="text-xs opacity-70 flex-shrink-0">
-                  ${((receipt.totalCents || 0) / 100).toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-[9px] uppercase tracking-tighter opacity-50">
-                <div className="flex gap-2">
-                  <span>{receipt.date || new Date(receipt.createdAt).toLocaleDateString()}</span>
-                  <span className={`font-bold whitespace-nowrap ${
-                    receipt.isUploadedByMe 
-                      ? 'text-ink' 
-                      : 'text-ink/60'
-                  }`}>
-                    {receipt.isUploadedByMe && receipt.isClaimedByMe
-                      ? "[ HOST + CLAIMED ]"
-                      : receipt.isUploadedByMe
-                      ? "[ HOST ]"
-                      : receipt.isParticipantByMe
-                      ? "[ PARTICIPANT ]"
-                      : receipt.isClaimedByMe
-                      ? "[ CLAIMED ]"
-                      : "[ JOINED ]"}
-                  </span>
-                </div>
-                <span className="group-hover:translate-x-1 transition-transform">
-                  VIEW RECEIPT {">>"}
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}

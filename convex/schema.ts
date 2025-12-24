@@ -90,8 +90,16 @@ export default defineSchema({
   memberships: defineTable({
     userId: v.id("users"),
     receiptId: v.id("receipts"),
+    joinedAt: v.number(),
+    merchantName: v.string(),
   })
     .index("by_user", ["userId"])
     .index("by_receipt", ["receiptId"])
-    .index("by_user_receipt", ["userId", "receiptId"]),
+    .index("by_user_receipt", ["userId", "receiptId"])
+    .index("by_user_joinedAt", ["userId", "joinedAt"])
+    .index("by_user_merchantName", ["userId", "merchantName"])
+    .searchIndex("search_merchant", {
+      searchField: "merchantName",
+      filterFields: ["userId"],
+    }),
 });
