@@ -87,11 +87,12 @@ export default defineSchema({
     .index("by_storageId", ["storageId"]),
 
   // NEW: Memberships table for efficient many-to-many relationship
+  // NOTE: MADE joinedAt and merchantName optional for now, existing documents didn't assign values to these fields
   memberships: defineTable({
     userId: v.id("users"),
     receiptId: v.id("receipts"),
-    joinedAt: v.number(),
-    merchantName: v.string(),
+    joinedAt: v.optional(v.number()),
+    merchantName: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_receipt", ["receiptId"])

@@ -27,10 +27,14 @@ export default function ReceiptDetailPage() {
 
   const user = useQuery(api.receipt.currentUser);
   const data = useQuery(api.receipt.getReceiptWithItems, { receiptId });
-  const parseReceipt = useAction(api.receiptActions.triggerParseReceiptByReceiptId);
+  const parseReceipt = useAction(
+    api.receiptActions.triggerParseReceiptByReceiptId,
+  );
   const deleteReceipt = useMutation(api.receipt.deleteReceipt);
   const toggleClaim = useMutation(api.receipt.toggleClaimItem);
-  const toggleParticipantClaim = useMutation(api.receipt.toggleParticipantClaim);
+  const toggleParticipantClaim = useMutation(
+    api.receipt.toggleParticipantClaim,
+  );
   const joinSplit = useMutation(api.receipt.joinReceipt);
   const getOrCreateShareCode = useMutation(api.share.getOrCreateShareCode);
   const confirmTip = useMutation(api.receipt.confirmTip);
@@ -38,17 +42,19 @@ export default function ReceiptDetailPage() {
   const [isJoining, setIsJoining] = useState(false);
   const [shareCode, setShareCode] = useState<string | null>(null);
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
-  const [splittingItemId, setSplittingItemId] = useState<Id<"receiptItems"> | null>(null);
+  const [splittingItemId, setSplittingItemId] =
+    useState<Id<"receiptItems"> | null>(null);
   const [isAddingTip, setIsAddingTip] = useState(false);
   const [customTipValue, setCustomTipValue] = useState("");
   const [isConfirmingTip, setIsConfirmingTip] = useState(false);
 
   const tipSectionRef = useRef<HTMLDivElement>(null);
+  const shareCodeRequestedRef = useRef(false);
 
   const isParsed = data?.receipt.status === "parsed";
   const isCurrentlyParsing = data?.receipt.status === "parsing" || isReparsing;
-  
-  // Derived state to prevent flash: 
+
+  // Derived state to prevent flash:
   // Image is visible if we're not parsed yet OR if the user explicitly clicked to show it.
   const isImageVisible = !isParsed || showImageOverride;
 
@@ -78,16 +84,39 @@ export default function ReceiptDetailPage() {
 
     // If we have a server-side parsingStartedAt, use that as the start time
     const startTime = data?.receipt.parsingStartedAt || Date.now();
-    
+
     // Update elapsed time immediately
     setElapsedTime((Date.now() - startTime) / 1000);
-    
+
     const interval = setInterval(() => {
       setElapsedTime((Date.now() - startTime) / 1000);
     }, 100);
 
     return () => clearInterval(interval);
   }, [isParsing, data?.receipt.parsingStartedAt]);
+
+  useEffect(() => {
+    if (!isParsed) return;
+    if (shareCode) return;
+    if (shareCodeRequestedRef.current) return;
+
+    shareCodeRequestedRef.current = true;
+
+    (async () => {
+      setIsGeneratingCode(true);
+      try {
+        const code = await getOrCreateShareCode({ receiptId });
+        setShareCode(code);
+      } catch (err) {
+        console.error("Failed to auto-generate share code", err);
+        toast.error("Failed to generate share code");
+        // allow retry if it failed
+        shareCodeRequestedRef.current = false;
+      } finally {
+        setIsGeneratingCode(false);
+      }
+    })();
+  }, [isParsed, receiptId, shareCode]);
 
   const handleReparse = async () => {
     setIsReparsing(true);
@@ -98,7 +127,7 @@ export default function ReceiptDetailPage() {
     } catch (error) {
       console.error("Failed to parse receipt:", error);
       setParseError(
-        error instanceof Error ? error.message : "Failed to parse receipt"
+        error instanceof Error ? error.message : "Failed to parse receipt",
       );
     } finally {
       setIsReparsing(false);
@@ -207,7 +236,8 @@ export default function ReceiptDetailPage() {
   // Calculate claimed amount
   const calculateClaimedAmount = (items: typeof data.items): number => {
     return items.reduce((sum, item) => {
-      const itemTotal = (item.priceCents || 0) + 
+      const itemTotal =
+        (item.priceCents || 0) +
         (item.modifiers?.reduce((s, m) => s + (m.priceCents || 0), 0) || 0);
       const numClaimants = item.claimedBy?.length || 0;
       if (numClaimants > 0) {
@@ -219,11 +249,14 @@ export default function ReceiptDetailPage() {
   };
 
   const claimedAmountCents = isParsed ? calculateClaimedAmount(items) : 0;
-  
+
   // Calculate total subtotal (sum of all items including modifiers)
   const totalSubtotalCents = items.reduce((sum, item) => {
-    return sum + (item.priceCents || 0) + 
-      (item.modifiers?.reduce((s, m) => s + (m.priceCents || 0), 0) || 0);
+    return (
+      sum +
+      (item.priceCents || 0) +
+      (item.modifiers?.reduce((s, m) => s + (m.priceCents || 0), 0) || 0)
+    );
   }, 0);
 
   const tipPresets = [
@@ -252,7 +285,10 @@ export default function ReceiptDetailPage() {
   const handleAdjustTip = () => {
     setIsAddingTip(true);
     setTimeout(() => {
-      tipSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      tipSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
     }, 100);
   };
 
@@ -291,7 +327,8 @@ export default function ReceiptDetailPage() {
                 Delete Receipt?
               </h2>
               <p className="text-xs uppercase opacity-60 leading-relaxed">
-                This action is permanent. All items, claims, and the receipt image will be destroyed.
+                This action is permanent. All items, claims, and the receipt
+                image will be destroyed.
               </p>
             </div>
             <div className="dotted-line"></div>
@@ -379,11 +416,36 @@ export default function ReceiptDetailPage() {
           <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-center">
             {receipt.merchantName || "Transaction Details"}
           </h1>
-          {receipt.date && (
+          {/* {receipt.date && (
             <p className="text-xs uppercase tracking-widest opacity-70">
               {receipt.date}
             </p>
+          )} */}
+          {receipt.date && (
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-xs uppercase tracking-widest opacity-70">
+                {receipt.date}
+              </p>
+
+              {isParsed && shareCode && (
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareCode)
+                      toast.success("Join code is copied!");
+                    }}
+                    // className="underline opacity-50 hover:opacity-100 transition-opacity"
+                  >
+                    <span className="opacity-40">Join Code:</span>
+                    <span className="font-bold border border-ink/30 px-2 bg-paper">
+                      {shareCode}
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
           )}
+
           {receipt.participants && receipt.participants.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2 mt-2">
               {receipt.participants.map((p, idx) => (
@@ -414,7 +476,7 @@ export default function ReceiptDetailPage() {
                 </span>
                 <div className="flex-1 border-t border-ink/20 border-dashed"></div>
               </div>
-              
+
               <div className="border border-ink/20 p-1 bg-paper">
                 <div className="relative aspect-[3/4] w-full">
                   {imageUrl ? (
@@ -473,10 +535,14 @@ export default function ReceiptDetailPage() {
             </div>
             <div className="flex flex-col items-center gap-2 max-w-[280px]">
               <div className="w-full bg-ink/10 h-1 overflow-hidden">
-                <div className="h-full bg-ink/40 animate-pulse" style={{ width: '100%' }}></div>
+                <div
+                  className="h-full bg-ink/40 animate-pulse"
+                  style={{ width: "100%" }}
+                ></div>
               </div>
               <p className="text-[10px] uppercase opacity-50 text-center leading-relaxed">
-                AI is extracting items, prices, and totals from your receipt image...
+                AI is extracting items, prices, and totals from your receipt
+                image...
               </p>
             </div>
           </div>
@@ -506,13 +572,21 @@ export default function ReceiptDetailPage() {
                   </span>
                 </div>
                 <p className="text-[10px] uppercase leading-relaxed text-yellow-700 font-medium">
-                  AI parsed a tip of **{formatCurrency(receipt.tipCents)}** 
+                  AI parsed a tip of **{formatCurrency(receipt.tipCents)}**
                   {subtotalCents > 0 ? (
-                    <> ({((receipt.tipCents || 0) / subtotalCents * 100).toFixed(1)}% of **{formatCurrency(subtotalCents)}** subtotal)</>
+                    <>
+                      {" "}
+                      (
+                      {(
+                        ((receipt.tipCents || 0) / subtotalCents) *
+                        100
+                      ).toFixed(1)}
+                      % of **{formatCurrency(subtotalCents)}** subtotal)
+                    </>
                   ) : (
                     <> (Subtotal: **{formatCurrency(subtotalCents)}**)</>
-                  )}. 
-                  Is this correct?
+                  )}
+                  . Is this correct?
                 </p>
                 <div className="flex justify-center gap-3">
                   <button
@@ -537,25 +611,25 @@ export default function ReceiptDetailPage() {
             <div className="flex flex-col gap-6">
               {/* Claimed Progress Bar */}
               {isParsed && totalSubtotalCents > 0 && (
-              <div className="flex flex-col gap-3 w-full">
-                <ClaimedProgressBar
-                  claimedAmountCents={claimedAmountCents}
-                  totalAmountCents={totalSubtotalCents}
-                  label="PROGRESS"
-                  showAmounts={true}
-                  minBarWidth={20}
-                />
-              </div>
-            )}
+                <div className="flex flex-col gap-3 w-full">
+                  <ClaimedProgressBar
+                    claimedAmountCents={claimedAmountCents}
+                    totalAmountCents={totalSubtotalCents}
+                    label="PROGRESS"
+                    showAmounts={true}
+                    minBarWidth={20}
+                  />
+                </div>
+              )}
 
-            <div className="flex items-center gap-2">
-              <div className="flex-1 border-t border-ink/20 border-dashed"></div>
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
-                Items
-              </h3>
-              <div className="flex-1 border-t border-ink/20 border-dashed"></div>
-            </div>
-              
+              <div className="flex items-center gap-2">
+                <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
+                  Items
+                </h3>
+                <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+              </div>
+
               {items.length > 0 ? (
                 <div className="flex flex-col gap-6">
                   {items.map((item) => {
@@ -563,25 +637,26 @@ export default function ReceiptDetailPage() {
                       (item.priceCents || 0) +
                       (item.modifiers?.reduce(
                         (sum, mod) => sum + (mod.priceCents || 0),
-                        0
+                        0,
                       ) || 0);
 
                     const isClaimedByUser = item.claimedBy?.some(
-                      (c) => c.userId === user?._id
+                      (c) => c.userId === user?._id,
                     );
 
                     return (
                       <div key={item._id} className="flex flex-col gap-3">
                         {/* Mobile: Stacked with indentation | Desktop: Grid */}
                         <div className="flex flex-col sm:grid sm:grid-cols-[1.5rem_1fr_auto_4.5rem] sm:gap-2 sm:items-center text-xs uppercase">
-                          
                           {/* Main Row: Qty, Name, Price (Mobile) / Grid Columns (Desktop) */}
                           <div className="flex justify-between items-start sm:contents">
                             <div className="flex gap-3 min-w-0 sm:contents">
                               <span className="flex-shrink-0 opacity-60 w-6 sm:order-1">
                                 {item.quantity}X
                               </span>
-                              <span className="font-bold truncate sm:order-2">{item.name}</span>
+                              <span className="font-bold truncate sm:order-2">
+                                {item.name}
+                              </span>
                             </div>
                             <span className="text-right font-bold sm:order-4 sm:font-normal">
                               {formatCurrency(totalItemPriceCents)}
@@ -590,11 +665,12 @@ export default function ReceiptDetailPage() {
 
                           {/* Sub-section: Modifiers, Actions, Claimants (Indented on Mobile) */}
                           <div className="ml-9 flex flex-col gap-2.5 mt-1.5 sm:mt-0 sm:ml-0 sm:pl-0 sm:border-l-0 sm:contents">
-                            
                             {/* Actions (Indented on Mobile | Column 3 on Desktop) */}
                             <div className="flex items-center gap-1 sm:order-3">
                               <button
-                                onClick={() => toggleClaim({ itemId: item._id })}
+                                onClick={() =>
+                                  toggleClaim({ itemId: item._id })
+                                }
                                 className={`text-[10px] font-black tracking-tighter px-2 py-0.5 border-2 transition-all ${
                                   isClaimedByUser
                                     ? "border-ink bg-ink text-paper hover:opacity-90"
@@ -604,7 +680,13 @@ export default function ReceiptDetailPage() {
                                 {isClaimedByUser ? "UNCLAIM" : "CLAIM"}
                               </button>
                               <button
-                                onClick={() => setSplittingItemId(splittingItemId === item._id ? null : item._id)}
+                                onClick={() =>
+                                  setSplittingItemId(
+                                    splittingItemId === item._id
+                                      ? null
+                                      : item._id,
+                                  )
+                                }
                                 className={`text-[10px] font-black tracking-tighter px-2 py-0.5 border-2 transition-all ${
                                   splittingItemId === item._id
                                     ? "border-ink bg-ink text-paper"
@@ -627,10 +709,18 @@ export default function ReceiptDetailPage() {
                             {/* Claimants (Indented on Mobile | Beneath Modifiers on Desktop) */}
                             {item.claimedBy && item.claimedBy.length > 0 && (
                               <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5 sm:col-start-2 sm:order-6">
-                                <span className="text-[9px] uppercase font-bold opacity-30">Claimed by:</span>
+                                <span className="text-[9px] uppercase font-bold opacity-30">
+                                  Claimed by:
+                                </span>
                                 {item.claimedBy.map((claim, idx) => (
-                                  <span key={idx} className="text-[9px] uppercase font-bold opacity-60">
-                                    {claim.userName}{idx < (item.claimedBy?.length || 0) - 1 ? "," : ""}
+                                  <span
+                                    key={idx}
+                                    className="text-[9px] uppercase font-bold opacity-60"
+                                  >
+                                    {claim.userName}
+                                    {idx < (item.claimedBy?.length || 0) - 1
+                                      ? ","
+                                      : ""}
                                   </span>
                                 ))}
                               </div>
@@ -642,8 +732,10 @@ export default function ReceiptDetailPage() {
                         {splittingItemId === item._id && (
                           <div className="mt-4 ml-9 p-3 border-2 border-dashed border-ink/20 flex flex-col gap-3 bg-paper">
                             <div className="flex justify-between items-center">
-                              <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">Split With Participants:</p>
-                              <button 
+                              <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">
+                                Split With Participants:
+                              </p>
+                              <button
                                 onClick={() => setSplittingItemId(null)}
                                 className="text-[11px] font-black uppercase underline hover:opacity-70"
                               >
@@ -654,9 +746,16 @@ export default function ReceiptDetailPage() {
                               {receipt.participants?.map((p) => (
                                 <button
                                   key={p.userId}
-                                  onClick={() => toggleParticipantClaim({ itemId: item._id, userId: p.userId })}
+                                  onClick={() =>
+                                    toggleParticipantClaim({
+                                      itemId: item._id,
+                                      userId: p.userId,
+                                    })
+                                  }
                                   className={`text-[11px] font-black tracking-tighter px-2 py-1 border-2 transition-all ${
-                                    item.claimedBy?.some(c => c.userId === p.userId)
+                                    item.claimedBy?.some(
+                                      (c) => c.userId === p.userId,
+                                    )
                                       ? "border-ink bg-ink text-paper"
                                       : "border-ink/20 text-ink/40 hover:border-ink/40 hover:text-ink/60"
                                   }`}
@@ -688,7 +787,7 @@ export default function ReceiptDetailPage() {
 
             {/* Summary */}
             <div className="flex flex-col gap-2">
-                <div className="receipt-item-row text-xs uppercase opacity-70">
+              <div className="receipt-item-row text-xs uppercase opacity-70">
                 <span>Subtotal</span>
                 <span>{formatCurrency(subtotalCents)}</span>
               </div>
@@ -696,11 +795,17 @@ export default function ReceiptDetailPage() {
                 <span>Tax</span>
                 <span>{formatCurrency(receipt.taxCents)}</span>
               </div>
-              <div className="receipt-item-row text-xs uppercase opacity-70" ref={tipSectionRef}>
+              <div
+                className="receipt-item-row text-xs uppercase opacity-70"
+                ref={tipSectionRef}
+              >
                 <span>
                   Tip
                   {receipt.tipConfirmed && (
-                    <span className="ml-1 text-green-600 font-black" title="Confirmed by Host">
+                    <span
+                      className="ml-1 text-green-600 font-black"
+                      title="Confirmed by Host"
+                    >
                       ✓
                     </span>
                   )}
@@ -761,7 +866,7 @@ export default function ReceiptDetailPage() {
                       <button
                         onClick={() => {
                           const cents = Math.round(
-                            parseFloat(customTipValue) * 100
+                            parseFloat(customTipValue) * 100,
                           );
                           if (isNaN(cents)) {
                             toast.error("Please enter a valid amount");
@@ -818,7 +923,7 @@ export default function ReceiptDetailPage() {
         {/* Footer */}
         <div className="flex flex-col items-center gap-4 text-[10px] uppercase tracking-widest opacity-50 italic text-center">
           <p>*** Thank You for Splitting ***</p>
-          
+
           {isHost && (
             <div className="flex items-center gap-4 not-italic">
               <button
@@ -831,9 +936,9 @@ export default function ReceiptDetailPage() {
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="text-[10px] font-bold uppercase underline text-red-600/50 hover:text-red-600 cursor-pointer whitespace-nowrap"
+                className="text-[10px] font-bold uppercase underline text-red-600/80 hover:text-red-600 cursor-pointer whitespace-nowrap"
               >
-                [ DELETE ]
+                [ <strong>DELETE</strong> ]
               </button>
             </div>
           )}
