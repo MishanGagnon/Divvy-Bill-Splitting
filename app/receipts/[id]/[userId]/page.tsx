@@ -22,11 +22,24 @@ export default function PersonalReceiptPage() {
 
   useEffect(() => {
     const checkMobile = () => {
-      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-      return /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+      const userAgent =
+        navigator.userAgent || navigator.vendor || (window as any).opera;
+      return /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+        userAgent.toLowerCase(),
+      );
     };
     setIsMobile(checkMobile());
   }, []);
+
+  const getInitials = (name: string | undefined) => {
+    if (!name) return "??";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   // Format cents to dollars
   const formatCurrency = (cents: number | undefined) => {
@@ -100,7 +113,12 @@ export default function PersonalReceiptPage() {
     const type = receipt.merchantType?.toLowerCase();
 
     // These types typically expect a tip, so we warn even if it's 0
-    const alwaysTippable = ["restaurant", "services", "travel", "entertainment"];
+    const alwaysTippable = [
+      "restaurant",
+      "services",
+      "travel",
+      "entertainment",
+    ];
     if (type && alwaysTippable.includes(type)) return true;
 
     // For other types (grocery, retail, etc.), only show if a tip was actually detected
@@ -114,37 +132,54 @@ export default function PersonalReceiptPage() {
 
   // Check if target user is the host
   const isHost = receipt.hostUserId === targetUserId;
-  
+
   // Filter items claimed by this user
-  const personalItems = items.filter(item => 
-    item.claimedBy?.some(claim => claim.userId === targetUserId)
+  const personalItems = items.filter((item) =>
+    item.claimedBy?.some((claim) => claim.userId === targetUserId),
   );
 
-  const targetUserName = personalItems[0]?.claimedBy?.find(c => c.userId === targetUserId)?.userName || "User";
+  const targetUserName =
+    personalItems[0]?.claimedBy?.find((c) => c.userId === targetUserId)
+      ?.userName || "User";
 
   // Calculate personal subtotal
   const personalSubtotalCents = personalItems.reduce((sum, item) => {
-    const totalItemPriceCents = (item.priceCents || 0) + (item.modifiers?.reduce((s, m) => s + (m.priceCents || 0), 0) || 0);
+    const totalItemPriceCents =
+      (item.priceCents || 0) +
+      (item.modifiers?.reduce((s, m) => s + (m.priceCents || 0), 0) || 0);
     const numClaimants = item.claimedBy?.length || 1;
     return sum + Math.round(totalItemPriceCents / numClaimants);
   }, 0);
 
   // Calculate total receipt subtotal (to find proportion)
   const totalReceiptSubtotalCents = items.reduce((sum, item) => {
-    return sum + (item.priceCents || 0) + (item.modifiers?.reduce((s, m) => s + (m.priceCents || 0), 0) || 0);
+    return (
+      sum +
+      (item.priceCents || 0) +
+      (item.modifiers?.reduce((s, m) => s + (m.priceCents || 0), 0) || 0)
+    );
   }, 0);
 
-  const personalProportion = totalReceiptSubtotalCents > 0 ? personalSubtotalCents / totalReceiptSubtotalCents : 0;
-  
+  const personalProportion =
+    totalReceiptSubtotalCents > 0
+      ? personalSubtotalCents / totalReceiptSubtotalCents
+      : 0;
+
   // Apportion tax and tip
-  const personalTaxCents = Math.round((receipt?.taxCents || 0) * personalProportion);
-  const personalTipCents = Math.round((receipt?.tipCents || 0) * personalProportion);
-  const personalTotalCents = personalSubtotalCents + personalTaxCents + personalTipCents;
+  const personalTaxCents = Math.round(
+    (receipt?.taxCents || 0) * personalProportion,
+  );
+  const personalTipCents = Math.round(
+    (receipt?.tipCents || 0) * personalProportion,
+  );
+  const personalTotalCents =
+    personalSubtotalCents + personalTaxCents + personalTipCents;
 
   // Calculate total claimed amount for progress bar
   const calculateClaimedAmount = (items: typeof data.items): number => {
     return items.reduce((sum, item) => {
-      const itemTotal = (item.priceCents || 0) + 
+      const itemTotal =
+        (item.priceCents || 0) +
         (item.modifiers?.reduce((s, m) => s + (m.priceCents || 0), 0) || 0);
       const numClaimants = item.claimedBy?.length || 0;
       if (numClaimants > 0) {
@@ -156,7 +191,7 @@ export default function PersonalReceiptPage() {
   };
 
   const claimedAmountCents = calculateClaimedAmount(items);
-  
+
   // Calculate total subtotal (sum of all items including modifiers) - same as totalReceiptSubtotalCents
   const totalSubtotalCents = totalReceiptSubtotalCents;
 
@@ -170,7 +205,7 @@ export default function PersonalReceiptPage() {
     const merchant = receipt.merchantName || "Receipt";
     const note = encodeURIComponent(`Split for ${merchant}`);
     const venmoUrl = `venmo://paycharge?txn=pay&recipients=${receipt.hostVenmoUsername}&amount=${amount}&note=${note}`;
-    
+
     window.location.href = venmoUrl;
   };
 
@@ -197,13 +232,26 @@ export default function PersonalReceiptPage() {
               COPY STATEMENT LINK
             </button>
           </div>
-          <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-center">
+          <h1 className="text-xl font-bold uppercase tracking-[0.1em] text-center">
             Personal Statement
           </h1>
-          <p className="text-xs uppercase tracking-widest font-bold">
-            For: {targetUserName}
-          </p>
-          <div className="dotted-line"></div>
+          <div className="flex flex-wrap justify-center pb-4 gap-2">
+            {receipt.participants.map((p, idx) => (
+              <div
+                key={idx}
+                title={p.userName}
+                className={`text-[9px] font-black tracking-tighter px-2 py-0.5 border-2 whitespace-nowrap ${
+                  p.userId === user?._id
+                    ? "border-ink bg-ink text-paper"
+                    : "border-ink/20 text-ink/40"
+                }`}
+              >
+                {getInitials(p.userName)} | {targetUserName}
+              </div>
+            ))}
+          </div>
+          {/* <p className="text-xs uppercase font-semi-bold py-2">{targetUserName}</p> */}
+          {/* <div className="dotted-line"></div> */}
           <p className="text-xs uppercase tracking-widest opacity-70">
             {receipt?.merchantName}
           </p>
@@ -221,7 +269,7 @@ export default function PersonalReceiptPage() {
           )}
         </div>
 
-          {/* Content Section */}
+        {/* Content Section */}
         <div className="flex flex-col gap-6">
           {/* Tip Confirmation Warning */}
           {receipt && shouldShowTipConfirmation() && (
@@ -256,31 +304,36 @@ export default function PersonalReceiptPage() {
 
           {/* Items */}
           <div className="flex flex-col gap-4">
-              {/* Claimed Progress Bar */}
-              {totalSubtotalCents > 0 && (
-                <div className="flex flex-col gap-2 w-full">
-                  <ClaimedProgressBar
-                    claimedAmountCents={claimedAmountCents}
-                    totalAmountCents={totalSubtotalCents}
-                    label="PROGRESS"
-                    showAmounts={true}
-                    minBarWidth={20}
-                  />
-                </div>
-              )}
-
-              <div className="flex items-center gap-2">
-                <div className="flex-1 border-t border-ink/20 border-dashed"></div>
-                <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
-                  Your Items
-                </h3>
-                <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+            {/* Claimed Progress Bar */}
+            {totalSubtotalCents > 0 && (
+              <div className="flex flex-col gap-2 w-full">
+                <ClaimedProgressBar
+                  claimedAmountCents={claimedAmountCents}
+                  totalAmountCents={totalSubtotalCents}
+                  label="PROGRESS"
+                  showAmounts={true}
+                  minBarWidth={20}
+                />
               </div>
-              
-              {personalItems.length > 0 ? (
+            )}
+
+            <div className="flex items-center gap-2">
+              <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
+                Your Items
+              </h3>
+              <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+            </div>
+
+            {personalItems.length > 0 ? (
               <div className="flex flex-col gap-3">
                 {personalItems.map((item) => {
-                  const itemSubtotal = (item.priceCents || 0) + (item.modifiers?.reduce((s, m) => s + (m.priceCents || 0), 0) || 0);
+                  const itemSubtotal =
+                    (item.priceCents || 0) +
+                    (item.modifiers?.reduce(
+                      (s, m) => s + (m.priceCents || 0),
+                      0,
+                    ) || 0);
                   const numClaimants = item.claimedBy?.length || 1;
                   const yourShare = Math.round(itemSubtotal / numClaimants);
 
@@ -291,14 +344,19 @@ export default function PersonalReceiptPage() {
                           {item.quantity}X
                         </span>
                         <div className="flex flex-col min-w-0">
-                          <span className="font-bold truncate">{item.name}</span>
+                          <span className="font-bold truncate">
+                            {item.name}
+                          </span>
                           {numClaimants > 1 && (
                             <span className="text-[9px] opacity-50 italic">
-                              (1/{numClaimants} share of {formatCurrency(itemSubtotal)})
+                              (1/{numClaimants} share of{" "}
+                              {formatCurrency(itemSubtotal)})
                             </span>
                           )}
                         </div>
-                        <span className="text-right">{formatCurrency(yourShare)}</span>
+                        <span className="text-right">
+                          {formatCurrency(yourShare)}
+                        </span>
                       </div>
                       {item.modifiers && item.modifiers.length > 0 && (
                         <div className="flex flex-col gap-0.5 ml-8 italic opacity-60 text-[10px] uppercase">
@@ -353,7 +411,12 @@ export default function PersonalReceiptPage() {
                 onClick={handleVenmoPay}
                 className="w-full bg-[#3d95ce] text-white py-4 px-6 rounded-lg font-bold uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg hover:bg-[#3d95ce]/90 transition-all active:scale-[0.98] touch-manipulation"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
                   <path d="M19.7 3H4.3C3.58 3 3 3.58 3 4.3v15.4c0 .72.58 1.3 1.3 1.3h15.4c.72 0 1.3-.58 1.3-1.3V4.3c0-.72-.58-1.3-1.3-1.3zm-3.1 14.2c-.4.5-1.1.8-1.9.8-1.1 0-1.9-.6-2.2-1.6l-2.4-8.8h2.3l1.5 6.4h.1l1.5-6.4h2.2l-2.6 9.6z" />
                 </svg>
                 Pay Host via Venmo
@@ -370,7 +433,7 @@ export default function PersonalReceiptPage() {
             <div className="flex flex-col gap-3 mt-4">
               {/* Option 1: Payment Summary */}
               <div className="border-2 border-ink/20 p-4 bg-paper/50 flex flex-col gap-2">
-                <h4 className="text-[12px] font-bold uppercase tracking-widest opacity-70">
+                <h4 className="text-[12px] font-bold uppercase tracking-wider opacity-70">
                   Payment Summary
                 </h4>
                 <div className="flex flex-col gap-1 text-[10px] uppercase opacity-60">
@@ -382,9 +445,13 @@ export default function PersonalReceiptPage() {
                     <span>Your Share:</span>
                     <span>{formatCurrency(personalTotalCents)}</span>
                   </div>
-                  <div className="flex justify-between font-bold border-t border-ink/10 pt-1 mt-1">
+                  <div className="flex text-[11px] justify-between font-bold border-t border-ink/10 pt-1 mt-1">
                     <span>Expected from Others:</span>
-                    <span>{formatCurrency((receipt.totalCents || 0) - personalTotalCents)}</span>
+                    <span>
+                      {formatCurrency(
+                        (receipt.totalCents || 0) - personalTotalCents,
+                      )}
+                    </span>
                   </div>
                 </div>
               </div>

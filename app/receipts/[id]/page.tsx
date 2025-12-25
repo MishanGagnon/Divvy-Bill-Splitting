@@ -442,7 +442,7 @@ export default function ReceiptDetailPage() {
           </div>
 
           <div className="flex flex-col items-center gap-1">
-            <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-center">
+            <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-center pt-6">
               {receipt.merchantName || "Transaction Details"}
             </h1>
             <div className="flex flex-wrap justify-center items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase tracking-widest opacity-50">
@@ -683,7 +683,7 @@ export default function ReceiptDetailPage() {
                                 {item.name}
                               </span>
                             </div>
-                            <span className="text-right font-bold sm:order-4 sm:font-normal">
+                            <span className="text-right font-semi-bold pl-6 sm:order-4 sm:font-normal">
                               {formatCurrency(totalItemPriceCents)}
                             </span>
                           </div>
@@ -965,7 +965,7 @@ export default function ReceiptDetailPage() {
                 onClick={handleReparse}
                 disabled={isCurrentlyParsing}
                 title="Reparse Receipt"
-                className="text-[10px] font-bold uppercase underline opacity-50 hover:opacity-100 cursor-pointer disabled:opacity-30 flex items-center gap-1 whitespace-nowrap"
+                className="text-[10px] font-bold uppercase underline hover:opacity-100 cursor-pointer disabled:opacity-30 flex items-center gap-1 whitespace-nowrap"
               >
                 [ REPARSE ]
               </button>
