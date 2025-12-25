@@ -47,6 +47,8 @@ function extractJSON(text: string): string {
 // Hardened Zod schema for structured AI output
 export const receiptParsingSchema = z.object({
   merchantName: z.string().optional().describe("Store or restaurant name"),
+  merchantType: z.string().optional().describe("The type of merchant (e.g. restaurant, grocery, etc.)"),
+  currency: z.string().optional().describe("The currency code (e.g. USD, EUR, etc.)"),
   date: z.string().optional().describe("Date on the receipt (as shown)"),
 
   totalCents: z.number().int().min(0).optional().describe("Total amount in cents (e.g., $12.50 = 1250)"),
@@ -203,6 +205,8 @@ export const parseReceipt = internalAction({
         storageId: image.storageId,
         hostUserId: image.uploadedBy, // Added hostUserId
         merchantName: parsedReceipt.merchantName ?? undefined,
+        merchantType: parsedReceipt.merchantType ?? undefined,
+        currency: parsedReceipt.currency ?? undefined,
         date: parsedReceipt.date ?? undefined,
         totalCents: parsedReceipt.totalCents ?? undefined,
         taxCents: parsedReceipt.taxCents ?? undefined,

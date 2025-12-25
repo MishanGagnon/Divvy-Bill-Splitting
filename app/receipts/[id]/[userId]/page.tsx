@@ -31,7 +31,16 @@ export default function PersonalReceiptPage() {
   // Format cents to dollars
   const formatCurrency = (cents: number | undefined) => {
     if (cents === undefined) return "—";
-    return `$${(cents / 100).toFixed(2)}`;
+    const amount = (cents / 100).toFixed(2);
+    const currency = receipt?.currency || "USD";
+
+    if (currency === "USD") return `$${amount}`;
+    if (currency === "EUR") return `€${amount}`;
+    if (currency === "GBP") return `£${amount}`;
+    if (currency === "CAD") return `C$${amount}`;
+    if (currency === "AUD") return `A$${amount}`;
+
+    return `${amount} ${currency}`;
   };
 
   if (data === undefined || user === undefined) {
@@ -84,6 +93,24 @@ export default function PersonalReceiptPage() {
   }
 
   const { receipt, items } = data;
+
+  // Helper to determine if we should show tip warning
+  const shouldShowTipConfirmation = () => {
+    if (!receipt || receipt.tipConfirmed) return false;
+    const type = receipt.merchantType?.toLowerCase();
+
+    // These types typically expect a tip, so we warn even if it's 0
+    const alwaysTippable = ["restaurant", "services", "travel", "entertainment"];
+    if (type && alwaysTippable.includes(type)) return true;
+
+    // For other types (grocery, retail, etc.), only show if a tip was actually detected
+    if (receipt.tipCents && receipt.tipCents > 0) return true;
+
+    // Default to true for unknown types to be safe
+    if (!type) return true;
+
+    return false;
+  };
 
   // Check if target user is the host
   const isHost = receipt.hostUserId === targetUserId;
@@ -180,6 +207,13 @@ export default function PersonalReceiptPage() {
           <p className="text-xs uppercase tracking-widest opacity-70">
             {receipt?.merchantName}
           </p>
+          {receipt?.merchantType && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 border border-ink/20 bg-ink/5 rounded-full">
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                {receipt.merchantType}
+              </span>
+            </div>
+          )}
           {receipt?.date && (
             <p className="text-[10px] uppercase tracking-widest opacity-50">
               {receipt.date}
@@ -190,7 +224,7 @@ export default function PersonalReceiptPage() {
           {/* Content Section */}
         <div className="flex flex-col gap-6">
           {/* Tip Confirmation Warning */}
-          {receipt && !receipt.tipConfirmed && (
+          {receipt && shouldShowTipConfirmation() && (
             <div className="bg-yellow-50 border-2 border-yellow-200 p-4 flex flex-col gap-2">
               <div className="flex items-center gap-2 text-yellow-700">
                 <svg

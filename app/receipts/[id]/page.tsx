@@ -151,7 +151,16 @@ export default function ReceiptDetailPage() {
   // Format cents to dollars
   const formatCurrency = (cents: number | undefined) => {
     if (cents === undefined) return "—";
-    return `$${(cents / 100).toFixed(2)}`;
+    const amount = (cents / 100).toFixed(2);
+    const currency = receipt?.currency || "USD";
+
+    if (currency === "USD") return `$${amount}`;
+    if (currency === "EUR") return `€${amount}`;
+    if (currency === "GBP") return `£${amount}`;
+    if (currency === "CAD") return `C$${amount}`;
+    if (currency === "AUD") return `A$${amount}`;
+
+    return `${amount} ${currency}`;
   };
 
   // Helper to get initials
@@ -227,6 +236,24 @@ export default function ReceiptDetailPage() {
   }
 
   const { receipt, imageUrl, items } = data;
+
+  // Helper to determine if we should show tip confirmation
+  const shouldShowTipConfirmation = () => {
+    if (!receipt || receipt.tipConfirmed) return false;
+    const type = receipt.merchantType?.toLowerCase();
+
+    // These types typically expect a tip, so we ask even if it's 0
+    const alwaysTippable = ["restaurant", "services", "travel", "entertainment"];
+    if (type && alwaysTippable.includes(type)) return true;
+
+    // For other types (grocery, retail, etc.), only show if a tip was actually detected
+    if (receipt.tipCents && receipt.tipCents > 0) return true;
+
+    // Default to true for unknown types to be safe
+    if (!type) return true;
+
+    return false;
+  };
 
   const subtotalCents =
     receipt.totalCents !== undefined && receipt.taxCents !== undefined
@@ -416,6 +443,13 @@ export default function ReceiptDetailPage() {
           <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-center">
             {receipt.merchantName || "Transaction Details"}
           </h1>
+          {receipt.merchantType && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 border border-ink/20 bg-ink/5 rounded-full">
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                {receipt.merchantType}
+              </span>
+            </div>
+          )}
           {/* {receipt.date && (
             <p className="text-xs uppercase tracking-widest opacity-70">
               {receipt.date}
@@ -549,7 +583,7 @@ export default function ReceiptDetailPage() {
         ) : isParsed ? (
           <div className="flex flex-col gap-6">
             {/* Host Tip Confirmation Banner */}
-            {isHost && !receipt.tipConfirmed && !isAddingTip && (
+            {isHost && shouldShowTipConfirmation() && !isAddingTip && (
               <div className="bg-yellow-50 border-2 border-dashed border-yellow-400 p-4 flex flex-col items-center gap-3 text-center">
                 <div className="flex items-center justify-center gap-2 text-yellow-800">
                   <svg

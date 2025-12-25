@@ -22,19 +22,34 @@ export const RECEIPT_PARSING_PROMPT = `You are an intelligent multi-step receipt
 
 3. **Receipt Types**:
    - **Grocery**: Sum per-category tax lines into a single tax value unless a combined total tax is already printed.
-   - **Restaurant**: Include both printed and handwritten tips if they are visible. For suggeted tips omit their tip amounts UNLESS they are circled or highlighted showing the payer chose it. 
-   - **Retail**: If the receipt includes multiple tip types which is common in some states include the sum of all tip types as the tip amount
+    - **Restaurant**: Include both printed and handwritten tips if they are visible. For suggeted tips omit their tip amounts UNLESS they are circled or highlighted showing the payer chose it. 
+    - **Retail**: If the receipt includes multiple tip types which is common in some states include the sum of all tip types as the tip amount
     
+4. **Merchant Type Inference**:
+   - Infer the **merchantType** based on store names and item types. 
+   - Use one of: "restaurant", "grocery", "retail", "entertainment", "travel", "services", "other".
+   - Examples: 
+     - "Taco Bell", "McDonalds", "Starbucks" -> "restaurant"
+     - "Whole Foods", "Trader Joes", "Kroger" -> "grocery"
+     - "Target", "Walmart", "Best Buy" -> "retail"
+     - "AMC", "Topgolf" -> "entertainment"
+     - "Delta", "Uber" -> "travel"
+     - "Dry Cleaners", "Nail Salon" -> "services"
 
-4. **Consistency**:
+5. **Currency Identification**:
+   - Default to "USD" (Dollars) if no other currency is explicitly found.
+   - Look for symbols ($, €, £, ¥, etc.) or currency codes (USD, CAD, EUR, GBP, etc.) to confirm or override the default.
+   - Use standard 3-letter currency codes (ISO 4217).
+
+6. **Consistency**:
    - Ensure the extracted total is approximately equal to subtotal + tax + tip (within ±5 cents).
    - Prefer minimal inference; if a value is truly unreadable, use null.
 
-5. **Transcription**:
+7. **Transcription**:
    - Only transcribe text. Ignore QR codes, barcodes, logos, or other non-textual elements. It will cause failure don't attempt
    - Ensure arithmetic and logic are consistent across all sections.
 
-6. **Quantity Rules**: 
+8. **Quantity Rules**: 
    - quantity MUST be a whole integer. NEVER output decimals.
    - Only read quantity from a leading integer at the start of an item line (e.g. "1 Dinner Combo (Pick 3) $16.00" → quantity = 1).
 
@@ -45,6 +60,8 @@ Example JSON output:
 \`\`\`json
 {
   "merchantName": "Taco Bell",
+  "merchantType": "restaurant",
+  "currency": "USD",
   "date": "2023-10-15",
   "totalCents": 1545,
   "taxCents": 125,

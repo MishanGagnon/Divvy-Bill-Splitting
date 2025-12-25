@@ -46,6 +46,7 @@ export default defineSchema({
     parsingStartedAt: v.optional(v.number()), // Timestamp when parsing started
     joinCode: v.optional(v.string()),
     currency: v.optional(v.string()),
+    merchantType: v.optional(v.string()),
     authedParticipants: v.optional(v.array(v.id("users"))),
     tipConfirmed: v.optional(v.boolean()),
   })
