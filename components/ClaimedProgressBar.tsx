@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 
 interface ClaimedProgressBarProps {
   claimedAmountCents: number;
   totalAmountCents: number;
   label?: string;
   showAmounts?: boolean;
-  minBarWidth?: number;
 }
 
 export function ClaimedProgressBar({
@@ -15,7 +14,6 @@ export function ClaimedProgressBar({
   totalAmountCents,
   label,
   showAmounts = true,
-  minBarWidth = 2,
 }: ClaimedProgressBarProps) {
   const percentage =
     totalAmountCents > 0
@@ -23,14 +21,18 @@ export function ClaimedProgressBar({
       : 0;
 
   const getColor = (percent: number): string => {
+    // Red -> Yellow -> Green gradient
+    // Using standard Tailwind-ish colors that fit the receipt theme
     if (percent <= 50) {
       const ratio = percent / 50;
-      const r = Math.round(220 + (234 - 220) * ratio);
-      const g = Math.round(38 + (179 - 38) * ratio);
-      const b = Math.round(38 + (8 - 38) * ratio);
+      // Interpolate between #ef4444 (red-500) and #eab308 (yellow-500)
+      const r = Math.round(239 + (234 - 239) * ratio);
+      const g = Math.round(68 + (179 - 68) * ratio);
+      const b = Math.round(68 + (8 - 68) * ratio);
       return `rgb(${r}, ${g}, ${b})`;
     } else {
       const ratio = (percent - 50) / 50;
+      // Interpolate between #eab308 (yellow-500) and #22c55e (green-500)
       const r = Math.round(234 + (34 - 234) * ratio);
       const g = Math.round(179 + (197 - 179) * ratio);
       const b = Math.round(8 + (94 - 8) * ratio);
@@ -41,98 +43,74 @@ export function ClaimedProgressBar({
   const formatCurrency = (cents: number) => `$${(cents / 100).toFixed(2)}`;
   const barColor = getColor(percentage);
 
-  // --- auto bar width ---
-  const barWrapRef = useRef<HTMLDivElement | null>(null);
-  const measureRef = useRef<HTMLSpanElement | null>(null);
-  const [barWidth, setBarWidth] = useState(15);
-
-  useEffect(() => {
-    const wrap = barWrapRef.current;
-    const measure = measureRef.current;
-    if (!wrap || !measure) return;
-
-    const compute = () => {
-      const wrapPx = wrap.getBoundingClientRect().width;
-      if (wrapPx <= 0) return;
-
-      // Measure the width of a single monospace char using a known string
-      const sample = "--------------------"; // 20 chars
-      measure.textContent = sample;
-      const samplePx = measure.getBoundingClientRect().width;
-      const charPx = samplePx / sample.length || 8;
-
-      // We render: "[" + (barWidth chars) + "]" => brackets cost ~2 chars
-      // We add extra safety buffer (total 6 characters) to prevent overlap on labels
-      const availableChars = Math.floor(wrapPx / charPx);
-      const next = Math.max(minBarWidth, availableChars - 6);
-      setBarWidth(next);
-    };
-
-    compute();
-    const ro = new ResizeObserver(compute);
-    ro.observe(wrap);
-    return () => ro.disconnect();
-  }, [minBarWidth]);
-
-  const { filledBar, emptyBar } = useMemo(() => {
-    const safeBarWidth = Math.max(1, barWidth);
-    const filledBlocks = Math.round((percentage / 100) * safeBarWidth);
-    const emptyBlocks = Math.max(0, safeBarWidth - filledBlocks);
-    return {
-      filledBar: "=".repeat(filledBlocks),
-      emptyBar: "-".repeat(emptyBlocks),
-    };
-  }, [percentage, barWidth]);
-
   return (
-    <div className="flex flex-col gap-1 w-full">
-      {label && (
-        <div className="flex items-center gap-2 mb-1">
-          <div className="flex-1 border-t border-ink/20 border-dashed"></div>
-          <p className="text-[10px] font-bold uppercase tracking-widest opacity-70 whitespace-nowrap">
-            {label}
-          </p>
-          <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+    <div className="flex flex-col gap-2 w-full">
+      <div className="flex justify-between items-end">
+        <div className="flex flex-col">
+          {label && (
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 leading-none mb-1.5">
+              {label}
+            </p>
+          )}
+          <h3 className="text-xs font-bold uppercase tracking-widest leading-none">
+            Amount Claimed
+          </h3>
         </div>
-      )}
-
-      <div className="flex flex-col items-center w-full mb-2 gap-2">
-        <div className="flex items-center gap-3 text-[10px] uppercase font-mono w-full">
-          {/* This area will stretch; barWidth is computed from its pixel width */}
-          <div
-            ref={barWrapRef}
-            className="flex-1 min-w-0 flex items-center justify-center overflow-hidden"
+        <div className="flex flex-col items-end">
+          <span 
+            className="text-xl font-black font-mono leading-none" 
             style={{ color: barColor }}
           >
-            <span
-              className="font-mono whitespace-nowrap"
-              style={{ letterSpacing: "0.2em" }}
-            >
-              [{filledBar}{emptyBar}]
-            </span>
-
-            {/* hidden measurer */}
-            <span
-              ref={measureRef}
-              className="absolute -left-[9999px] top-0 font-mono text-[10px] uppercase"
-              style={{ letterSpacing: "0.2em" }}
-              aria-hidden="true"
-            />
-          </div>
-
-          <span className="font-bold whitespace-nowrap flex-shrink-0" style={{ color: barColor }}>
             {Math.round(percentage)}%
           </span>
         </div>
+      </div>
 
-        {showAmounts && (
-          <div className="flex items-center justify-center w-full mt-1">
-            <span className="opacity-60 text-[10px] uppercase font-mono whitespace-nowrap">
-              {formatCurrency(claimedAmountCents)} / {formatCurrency(totalAmountCents)}
+      <div className="relative h-4 w-full bg-ink/[0.03] border-2 border-ink overflow-hidden shadow-[2px_2px_0px_rgba(0,0,0,0.1)]">
+        {/* Subtle background pattern for the empty bar */}
+        <div 
+          className="absolute inset-0 opacity-[0.05]" 
+          style={{ 
+            backgroundImage: `radial-gradient(var(--ink) 1px, transparent 0)`,
+            backgroundSize: '4px 4px'
+          }} 
+        />
+        
+        {/* The progress fill */}
+        <div
+          className="h-full transition-all duration-1000 ease-out relative border-r-2 border-ink/20"
+          style={{
+            width: `${percentage}%`,
+            backgroundColor: barColor,
+          }}
+        >
+           {/* Diagonal stripe pattern on the fill */}
+           <div 
+            className="absolute inset-0 opacity-20" 
+            style={{ 
+              backgroundImage: `linear-gradient(45deg, rgba(255,255,255,0.4) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.4) 75%, transparent 75%, transparent)`,
+              backgroundSize: '12px 12px'
+            }} 
+          />
+        </div>
+      </div>
+
+      {showAmounts && (
+        <div className="flex justify-between items-start pt-1">
+          <div className="flex flex-col">
+            <span className="text-[9px] uppercase font-bold opacity-30 tracking-tighter">Claimed</span>
+            <span className="text-sm font-mono font-black" style={{ color: percentage > 0 ? barColor : undefined }}>
+              {formatCurrency(claimedAmountCents)}
             </span>
           </div>
-        )}
-      </div>
+          <div className="flex flex-col items-end">
+            <span className="text-[9px] uppercase font-bold opacity-30 tracking-tighter">Remaining</span>
+            <span className="text-sm font-mono font-bold opacity-60">
+              {formatCurrency(Math.max(0, totalAmountCents - claimedAmountCents))}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -290,9 +290,8 @@ export default function PersonalReceiptPage() {
                 <ClaimedProgressBar
                   claimedAmountCents={claimedAmountCents}
                   totalAmountCents={totalSubtotalCents}
-                  label="PROGRESS"
+                  label="SESSION STATUS"
                   showAmounts={true}
-                  minBarWidth={20}
                 />
               </div>
             )}

@@ -943,7 +943,6 @@ export default function ReceiptDetailPage() {
                     claimedAmountCents={claimedAmountCents}
                     totalAmountCents={totalSubtotalCents}
                     showAmounts={false}
-                    minBarWidth={15}
                   />
                 </div>
               )}
