@@ -165,6 +165,7 @@ export const addGuestParticipant = mutation({
     const guestId = await ctx.db.insert("users", {
       name: args.name,
       isAnonymous: true,
+      createdBy: userId,
     });
 
     // 2. Add them to memberships so they show up in history/lists
@@ -182,6 +183,76 @@ export const addGuestParticipant = mutation({
     });
 
     return guestId;
+  },
+});
+
+/**
+ * Mutation to remove a guest participant from a receipt.
+ * Only the host can perform this action.
+ * This also removes all claims made by the guest.
+ */
+export const removeGuestParticipant = mutation({
+  args: {
+    receiptId: v.id("receipts"),
+    guestId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+
+    const receipt = await ctx.db.get(args.receiptId);
+    if (!receipt) {
+      throw new Error("Receipt not found");
+    }
+
+    const guest = await ctx.db.get(args.guestId);
+    if (!guest || !guest.isAnonymous) {
+      throw new Error("Cannot remove non-guest users");
+    }
+
+    if (receipt.hostUserId !== userId && guest.createdBy !== userId) {
+      throw new Error("Unauthorized: Only the host or the creator can remove guests");
+    }
+
+    // 2. Remove from authedParticipants
+    const participants = receipt.authedParticipants || [];
+    await ctx.db.patch(args.receiptId, {
+      authedParticipants: participants.filter((id) => id !== args.guestId),
+    });
+
+    // 3. Remove guest claims from all receipt items
+    const items = await ctx.db
+      .query("receiptItems")
+      .withIndex("by_receipt", (q) => q.eq("receiptId", args.receiptId))
+      .collect();
+
+    for (const item of items) {
+      if (item.claimedBy?.includes(args.guestId)) {
+        await ctx.db.patch(item._id, {
+          claimedBy: item.claimedBy.filter((id) => id !== args.guestId),
+        });
+      }
+    }
+
+    // 4. Delete the membership record
+    const membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user_receipt", (q) =>
+        q.eq("userId", args.guestId).eq("receiptId", args.receiptId),
+      )
+      .unique();
+
+    if (membership) {
+      await ctx.db.delete(membership._id);
+    }
+
+    // 5. Optional: Delete the guest user record if it's only used for this receipt
+    // For now, we'll keep it simple and just leave the user record.
+    // Guest users are small records and it's safer than checking all other receipts.
+
+    return true;
   },
 });
 
@@ -827,6 +898,7 @@ export const getReceiptWithItems = query({
               userId: v.id("users"),
               userName: v.string(),
               isAnonymous: v.optional(v.boolean()),
+              createdBy: v.optional(v.id("users")),
             })
           )
         ),
@@ -905,6 +977,7 @@ export const getReceiptWithItems = query({
           userId,
           userName: user?.name || user?.email || "Unknown User",
           isAnonymous: user?.isAnonymous,
+          createdBy: user?.createdBy,
         };
       })
     );

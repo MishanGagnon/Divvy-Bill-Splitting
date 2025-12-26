@@ -37,6 +37,7 @@ export default function ReceiptDetailPage() {
   );
   const joinSplit = useMutation(api.receipt.joinReceipt);
   const addGuest = useMutation(api.receipt.addGuestParticipant);
+  const removeGuest = useMutation(api.receipt.removeGuestParticipant);
   const getOrCreateShareCode = useMutation(api.share.getOrCreateShareCode);
   const confirmTip = useMutation(api.receipt.confirmTip);
 
@@ -52,6 +53,11 @@ export default function ReceiptDetailPage() {
   const [isConfirmingTip, setIsConfirmingTip] = useState(false);
   const [isAddingGuest, setIsAddingGuest] = useState(false);
   const [newGuestName, setNewGuestName] = useState("");
+  const [isRemovingGuest, setIsRemovingGuest] = useState(false);
+  const [guestToRemove, setGuestToRemove] = useState<{
+    userId: Id<"users">;
+    userName: string;
+  } | null>(null);
 
   const tipSectionRef = useRef<HTMLDivElement>(null);
   const shareCodeRequestedRef = useRef(false);
@@ -615,6 +621,119 @@ export default function ReceiptDetailPage() {
                       >
                         + Add Guest
                       </button>
+                    )}
+
+                    {/* Remove Guest Button */}
+                    {receipt.participants.some(
+                      (p) =>
+                        p.isAnonymous &&
+                        (isHost || (user && p.createdBy === user._id)),
+                    ) && (
+                      <button
+                        onClick={() => setIsRemovingGuest(true)}
+                        className="text-[9px] font-black tracking-tighter px-2 py-0.5 border-2 border-dashed border-red-600/40 text-red-600/40 hover:border-red-600 hover:text-red-600 transition-all uppercase"
+                      >
+                        - Remove Guest
+                      </button>
+                    )}
+
+                    {/* Remove Guest Modal */}
+                    {isRemovingGuest && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+                        <div className="w-full max-w-sm receipt-paper jagged-top jagged-bottom p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                          <div className="flex justify-between items-center border-b-2 border-ink/10 pb-3 mb-4">
+                            <h3 className="text-xs font-black uppercase tracking-widest">
+                              {guestToRemove ? "Confirm Removal" : "Remove Guest"}
+                            </h3>
+                            <button
+                              onClick={() => {
+                                setIsRemovingGuest(false);
+                                setGuestToRemove(null);
+                              }}
+                              className="text-xs font-bold opacity-50 hover:opacity-100"
+                            >
+                              ✕
+                            </button>
+                          </div>
+
+                          {guestToRemove ? (
+                            <div className="flex flex-col gap-4">
+                              <div className="bg-red-50 border-2 border-dashed border-red-200 p-4 text-center">
+                                <p className="text-[11px] uppercase font-bold text-red-600 leading-relaxed">
+                                  Are you sure you want to remove{" "}
+                                  <span className="bg-red-600 text-white px-1">
+                                    {guestToRemove.userName}
+                                  </span>
+                                  ?
+                                </p>
+                                <p className="text-[9px] uppercase font-bold text-red-600/60 mt-2">
+                                  All their claimed items will be cleared.
+                                </p>
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await removeGuest({
+                                        receiptId,
+                                        guestId: guestToRemove.userId,
+                                      });
+                                      toast.success(
+                                        `Removed guest: ${guestToRemove.userName}`,
+                                      );
+                                      setGuestToRemove(null);
+                                      setIsRemovingGuest(false);
+                                    } catch (err) {
+                                      toast.error("Failed to remove guest");
+                                    }
+                                  }}
+                                  className="w-full bg-red-600 text-white text-[10px] font-black py-3 uppercase hover:bg-red-700 transition-colors shadow-[4px_4px_0px_rgba(0,0,0,0.1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                                >
+                                  YES, REMOVE GUEST
+                                </button>
+                                <button
+                                  onClick={() => setGuestToRemove(null)}
+                                  className="w-full border-2 border-ink text-[10px] font-black py-3 uppercase hover:bg-ink hover:text-paper transition-all"
+                                >
+                                  BACK TO LIST
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-2">
+                              <p className="text-[9px] uppercase font-bold opacity-40 mb-2 tracking-widest">
+                                Select a guest to remove:
+                              </p>
+                              <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto pr-1">
+                                {receipt.participants
+                                  .filter(
+                                    (p) =>
+                                      p.isAnonymous &&
+                                      (isHost ||
+                                        (user && p.createdBy === user._id)),
+                                  )
+                                  .map((p) => (
+                                    <button
+                                      key={p.userId}
+                                      onClick={() =>
+                                        setGuestToRemove({
+                                          userId: p.userId,
+                                          userName: p.userName,
+                                        })
+                                      }
+                                      className="group text-[10px] font-bold uppercase tracking-tighter px-3 py-2.5 border-2 border-ink/10 hover:border-red-600 hover:text-red-600 transition-all text-left flex justify-between items-center bg-paper"
+                                    >
+                                      <span>{p.userName}</span>
+                                      <span className="text-[8px] opacity-0 group-hover:opacity-40 font-black">
+                                        SELECT →
+                                      </span>
+                                    </button>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
