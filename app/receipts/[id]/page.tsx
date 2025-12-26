@@ -45,6 +45,8 @@ export default function ReceiptDetailPage() {
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
   const [splittingItemId, setSplittingItemId] =
     useState<Id<"receiptItems"> | null>(null);
+  const [expandedClaimantsItemId, setExpandedClaimantsItemId] =
+    useState<Id<"receiptItems"> | null>(null);
   const [isAddingTip, setIsAddingTip] = useState(false);
   const [customTipValue, setCustomTipValue] = useState("");
   const [isConfirmingTip, setIsConfirmingTip] = useState(false);
@@ -175,6 +177,11 @@ export default function ReceiptDetailPage() {
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const getFirstName = (name: string | undefined) => {
+    if (!name) return "";
+    return name.trim().split(/\s+/)[0];
   };
 
   // Loading state
@@ -759,7 +766,7 @@ export default function ReceiptDetailPage() {
             )}
 
             {/* Items */}
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
                 <div className="flex-1 border-t border-ink/20 border-dashed"></div>
                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
@@ -769,7 +776,7 @@ export default function ReceiptDetailPage() {
               </div>
 
               {items.length > 0 ? (
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-4">
                   {items.map((item) => {
                     const totalItemPriceCents =
                       (item.priceCents || 0) +
@@ -783,9 +790,9 @@ export default function ReceiptDetailPage() {
                     );
 
                     return (
-                      <div key={item._id} className="flex flex-col gap-3">
+                      <div key={item._id} className="flex flex-col gap-1">
                         {/* Mobile: Stacked with indentation | Desktop: Grid */}
-                        <div className="flex flex-col sm:grid sm:grid-cols-[1.5rem_1fr_auto_4.5rem] sm:gap-2 sm:items-center text-xs uppercase">
+                        <div className="flex flex-col sm:grid sm:grid-cols-[1.5rem_1fr_4.5rem_auto] sm:gap-2 sm:items-start text-xs uppercase">
                           {/* Main Row: Qty, Name, Price (Mobile) / Grid Columns (Desktop) */}
                           <div className="flex justify-between items-start sm:contents">
                             <div className="flex gap-3 min-w-0 sm:contents">
@@ -796,20 +803,20 @@ export default function ReceiptDetailPage() {
                                 {item.name}
                               </span>
                             </div>
-                            <span className="text-right font-semi-bold pl-6 sm:order-4 sm:font-normal">
+                            <span className="text-right font-semi-bold pl-6 sm:order-3 sm:font-normal">
                               {formatCurrency(totalItemPriceCents)}
                             </span>
                           </div>
 
                           {/* Sub-section: Modifiers, Actions, Claimants (Indented on Mobile) */}
-                          <div className="ml-9 flex flex-col gap-2.5 mt-1.5 sm:mt-0 sm:ml-0 sm:pl-0 sm:border-l-0 sm:contents">
-                            {/* Actions (Indented on Mobile | Column 3 on Desktop) */}
-                            <div className="flex items-center gap-1 sm:order-3">
+                          <div className="ml-9 flex flex-col gap-1 mt-0.5 sm:mt-0 sm:ml-0 sm:pl-0 sm:border-l-0 sm:contents">
+                            {/* Actions (Indented on Mobile | Column 4 on Desktop) */}
+                            <div className="flex items-center gap-1 sm:order-4">
                               <button
                                 onClick={() =>
                                   toggleClaim({ itemId: item._id })
                                 }
-                                className={`text-[10px] font-black tracking-tighter px-2 py-0.5 border-2 transition-all ${
+                                className={`text-[10px] font-black tracking-tighter px-2 py-0.5 border-2 transition-all min-w-[75px] text-center ${
                                   isClaimedByUser
                                     ? "border-ink bg-ink text-paper hover:opacity-90"
                                     : "border-dotted border-ink/40 text-ink/60 hover:border-solid hover:border-ink hover:text-ink"
@@ -817,11 +824,7 @@ export default function ReceiptDetailPage() {
                               >
                                 {isClaimedByUser
                                   ? "UNCLAIM"
-                                  : isHost &&
-                                      receipt.participants &&
-                                      receipt.participants.length > 1
-                                    ? "CLAIM / ASSIGN"
-                                    : "CLAIM"}
+                                  : "CLAIM"}
                               </button>
                               <button
                                 onClick={() =>
@@ -831,7 +834,7 @@ export default function ReceiptDetailPage() {
                                       : item._id,
                                   )
                                 }
-                                className={`text-[10px] font-black tracking-tighter px-2 py-0.5 border-2 transition-all ${
+                                className={`text-[10px] font-black tracking-tighter px-2 py-0.5 border-2 transition-all min-w-[75px] text-center ${
                                   splittingItemId === item._id
                                     ? "border-ink bg-ink text-paper"
                                     : "border-ink/40 text-ink/60 hover:border-ink hover:text-ink"
@@ -854,31 +857,67 @@ export default function ReceiptDetailPage() {
                               </div>
                             )}
 
-                            {/* Claimants (Indented on Mobile | Beneath Modifiers on Desktop) */}
-                            {item.claimedBy && item.claimedBy.length > 0 && (
-                              <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5 sm:col-start-2 sm:order-6">
-                                <span className="text-[9px] uppercase font-bold opacity-30">
-                                  Claimed by:
-                                </span>
-                                {item.claimedBy.map((claim, idx) => (
-                                  <span
-                                    key={idx}
-                                    className="text-[9px] uppercase font-bold opacity-60"
-                                  >
-                                    {claim.userName}
-                                    {idx < (item.claimedBy?.length || 0) - 1
-                                      ? ","
-                                      : ""}
+                            {/* Claimants (Reserved space to prevent jumping) */}
+                            <div
+                              onClick={() =>
+                                setExpandedClaimantsItemId(
+                                  expandedClaimantsItemId === item._id
+                                    ? null
+                                    : item._id,
+                                )
+                              }
+                              className={`flex gap-x-2 gap-y-0.5 mt-0.5 sm:col-start-2 sm:order-6 min-h-[1.25rem] cursor-pointer group ${
+                                expandedClaimantsItemId === item._id
+                                  ? "flex-wrap"
+                                  : "flex-nowrap overflow-hidden items-center"
+                              }`}
+                            >
+                              {item.claimedBy && item.claimedBy.length > 0 && (
+                                <>
+                                  <span className="text-[9px] uppercase font-bold opacity-30 whitespace-nowrap">
+                                    Claimed by:
                                   </span>
-                                ))}
-                              </div>
-                            )}
+                                  <div
+                                    className={`flex gap-x-1 items-center ${
+                                      expandedClaimantsItemId === item._id
+                                        ? "flex-wrap"
+                                        : "flex-nowrap"
+                                    }`}
+                                  >
+                                    {(expandedClaimantsItemId === item._id
+                                      ? item.claimedBy
+                                      : item.claimedBy.slice(0, 2)
+                                    ).map((claim, idx, arr) => (
+                                      <span
+                                        key={idx}
+                                        className="text-[9px] uppercase font-bold opacity-60 whitespace-nowrap"
+                                      >
+                                        {getFirstName(claim.userName)}
+                                        {idx < arr.length - 1 ? "," : ""}
+                                      </span>
+                                    ))}
+                                    {expandedClaimantsItemId !== item._id &&
+                                      item.claimedBy.length > 2 && (
+                                        <span className="text-[8px] opacity-40 ml-1 font-black bg-ink/5 px-1 py-0.5 hover:bg-ink/10 transition-colors whitespace-nowrap">
+                                          +{item.claimedBy.length - 2} MORE
+                                        </span>
+                                      )}
+                                    {expandedClaimantsItemId === item._id &&
+                                      item.claimedBy.length > 2 && (
+                                        <span className="text-[8px] opacity-40 ml-1 font-black bg-ink/5 px-1 py-0.5 hover:bg-ink/10 transition-colors whitespace-nowrap">
+                                          [ COLLAPSE ]
+                                        </span>
+                                      )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
 
                         {/* Split Selector UI (Always indented) */}
                         {splittingItemId === item._id && (
-                          <div className="mt-4 ml-9 p-3 border-2 border-dashed border-ink/20 flex flex-col gap-3 bg-paper">
+                          <div className="mt-2 ml-9 p-3 border-2 border-dashed border-ink/20 flex flex-col gap-3 bg-paper">
                             <div className="flex justify-between items-center">
                               <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">
                                 {isHost
