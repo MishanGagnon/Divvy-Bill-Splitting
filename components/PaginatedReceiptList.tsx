@@ -23,7 +23,7 @@ export function PaginatedReceiptList() {
   const { results, status, loadMore } = usePaginatedQuery(
     api.receipt.listUserReceipts,
     { searchTerm: debouncedSearchTerm || undefined },
-    { initialNumItems: itemsPerPage }
+    { initialNumItems: itemsPerPage },
   );
 
   const totalResultsCount = results.length;
@@ -35,7 +35,10 @@ export function PaginatedReceiptList() {
   const canGoPrev = currentPage > 0;
 
   const handleNext = () => {
-    if (startIndex + itemsPerPage >= totalResultsCount && status === "CanLoadMore") {
+    if (
+      startIndex + itemsPerPage >= totalResultsCount &&
+      status === "CanLoadMore"
+    ) {
       loadMore(itemsPerPage);
     }
     setCurrentPage((prev) => prev + 1);
@@ -78,9 +81,12 @@ export function PaginatedReceiptList() {
       </div>
 
       {/* Results List */}
-      {pageResults.length === 0 && (status === "Exhausted" || status === "CanLoadMore") ? (
+      {pageResults.length === 0 &&
+      (status === "Exhausted" || status === "CanLoadMore") ? (
         <p className="text-[10px] uppercase opacity-40 text-center italic py-4">
-          {debouncedSearchTerm ? "No matching transactions" : "No transactions detected"}
+          {debouncedSearchTerm
+            ? "No matching transactions"
+            : "No transactions detected"}
         </p>
       ) : (
         <div className="flex flex-col gap-4 min-h-[200px]">
@@ -106,18 +112,14 @@ export function PaginatedReceiptList() {
                   </span>
                   <span
                     className={`font-bold whitespace-nowrap ${
-                      receipt.isUploadedByMe ? "text-ink" : "text-ink/60"
+                      receipt.isUploadedByMe ? "text-ink" : "text-ink/70"
                     }`}
                   >
-                    {receipt.isUploadedByMe && receipt.isClaimedByMe
-                      ? "[ HOST + CLAIMED ]"
-                      : receipt.isUploadedByMe
-                        ? "[ HOST ]"
-                        : receipt.isParticipantByMe
-                          ? "[ PARTICIPANT ]"
-                          : receipt.isClaimedByMe
-                            ? "[ CLAIMED ]"
-                            : "[ JOINED ]"}
+                    {receipt.isUploadedByMe
+                      ? "[ HOST ]"
+                      : receipt.isParticipantByMe
+                        ? "[ PARTICIPANT ]"
+                        : "[ JOINED ]"}
                   </span>
                 </div>
                 <span className="group-hover:translate-x-1 transition-transform">
@@ -141,7 +143,7 @@ export function PaginatedReceiptList() {
             >
               {"<< PREV"}
             </button>
-            
+
             <span className="text-[10px] font-bold opacity-40">
               PAGE {currentPage + 1}
             </span>
@@ -162,7 +164,9 @@ export function PaginatedReceiptList() {
       {(status === "LoadingFirstPage" || status === "LoadingMore") && (
         <div className="flex flex-col items-center gap-4 py-2 animate-pulse">
           <p className="text-[10px] uppercase font-bold opacity-50">
-            {status === "LoadingFirstPage" ? "Retrieving Receipts..." : "Retrieving More..."}
+            {status === "LoadingFirstPage"
+              ? "Retrieving Receipts..."
+              : "Retrieving More..."}
           </p>
         </div>
       )}
