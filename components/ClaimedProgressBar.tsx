@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
-
 interface ClaimedProgressBarProps {
   claimedAmountCents: number;
   totalAmountCents: number;
   label?: string;
   showAmounts?: boolean;
+  currency?: string;
 }
 
 export function ClaimedProgressBar({
@@ -14,6 +13,7 @@ export function ClaimedProgressBar({
   totalAmountCents,
   label,
   showAmounts = true,
+  currency = "USD",
 }: ClaimedProgressBarProps) {
   const percentage =
     totalAmountCents > 0
@@ -40,7 +40,19 @@ export function ClaimedProgressBar({
     }
   };
 
-  const formatCurrency = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+  const formatCurrency = (cents: number) => {
+    const amount = (cents / 100).toFixed(2);
+    const curr = currency || "USD";
+
+    if (curr === "USD") return `$${amount}`;
+    if (curr === "EUR") return `€${amount}`;
+    if (curr === "GBP") return `£${amount}`;
+    if (curr === "CAD") return `C$${amount}`;
+    if (curr === "AUD") return `A$${amount}`;
+    if (curr === "INR") return `₹${amount}`;
+
+    return `${amount} ${curr}`;
+  };
   const barColor = getColor(percentage);
 
   return (

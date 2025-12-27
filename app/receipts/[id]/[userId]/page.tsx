@@ -373,6 +373,7 @@ export default function PersonalReceiptPage() {
                   totalAmountCents={totalSubtotalCents}
                   label="SESSION STATUS"
                   showAmounts={true}
+                  currency={receipt.currency}
                 />
               </div>
             )}

@@ -1229,6 +1229,7 @@ export default function ReceiptDetailPage() {
                     claimedAmountCents={claimedAmountCents}
                     totalAmountCents={totalSubtotalCents}
                     showAmounts={false}
+                    currency={receipt.currency}
                   />
                 </div>
               )}
