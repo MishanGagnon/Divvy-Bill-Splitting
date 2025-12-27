@@ -304,7 +304,7 @@ export default function PersonalReceiptPage() {
           label: "Zelle",
           handle: receipt.hostZellePhone,
           onClick: handleZellePay,
-          logo: "", // Add zelle.webp to app/assets/
+          logo: null, // Zelle logo not yet added
         };
       return null;
     };
@@ -350,6 +350,10 @@ export default function PersonalReceiptPage() {
                 width={32}
                 height={32}
                 className="object-contain"
+                onError={(e) => {
+                  // Fallback to arrow if image fails to load
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             ) : (
               <svg
