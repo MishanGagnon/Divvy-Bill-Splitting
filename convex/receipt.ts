@@ -23,8 +23,8 @@ export const createImageWithDraftReceipt = mutation({
     }
 
     const user = await ctx.db.get(userId);
-    if (!user?.venmoUsername) {
-      throw new Error("Venmo username is required to start a split");
+    if (!user?.venmoUsername && !user?.cashAppUsername && !user?.zellePhone) {
+      throw new Error("At least one payment method (Venmo, Cash App, or Zelle) is required to start a split");
     }
 
     // Create the image record
@@ -75,20 +75,32 @@ export const currentUser = query({
 });
 
 /**
- * Update the current user's Venmo username.
+ * Update the current user's profile.
  */
-export const updateVenmoUsername = mutation({
+export const updateUserProfile = mutation({
   args: {
-    venmoUsername: v.string(),
+    name: v.optional(v.string()),
+    venmoUsername: v.optional(v.string()),
+    cashAppUsername: v.optional(v.string()),
+    zellePhone: v.optional(v.string()),
+    preferredPaymentMethod: v.optional(
+      v.union(v.literal("venmo"), v.literal("cashapp"), v.literal("zelle"))
+    ),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       throw new Error("Unauthorized");
     }
-    await ctx.db.patch(userId, {
-      venmoUsername: args.venmoUsername,
-    });
+    
+    const patch: any = {};
+    if (args.name !== undefined) patch.name = args.name;
+    if (args.venmoUsername !== undefined) patch.venmoUsername = args.venmoUsername;
+    if (args.cashAppUsername !== undefined) patch.cashAppUsername = args.cashAppUsername;
+    if (args.zellePhone !== undefined) patch.zellePhone = args.zellePhone;
+    if (args.preferredPaymentMethod !== undefined) patch.preferredPaymentMethod = args.preferredPaymentMethod;
+    
+    await ctx.db.patch(userId, patch);
   },
 });
 
@@ -892,6 +904,9 @@ export const getReceiptWithItems = query({
         authedParticipants: v.optional(v.array(v.id("users"))),
         tipConfirmed: v.optional(v.boolean()),
         hostVenmoUsername: v.optional(v.string()),
+        hostCashAppUsername: v.optional(v.string()),
+        hostZellePhone: v.optional(v.string()),
+        hostPreferredPaymentMethod: v.optional(v.string()),
         participants: v.optional(
           v.array(
             v.object({
@@ -1018,6 +1033,9 @@ export const getReceiptWithItems = query({
         authedParticipants: receipt.authedParticipants,
         tipConfirmed: receipt.tipConfirmed,
         hostVenmoUsername: hostUser?.venmoUsername,
+        hostCashAppUsername: hostUser?.cashAppUsername,
+        hostZellePhone: hostUser?.zellePhone,
+        hostPreferredPaymentMethod: hostUser?.preferredPaymentMethod,
         participants: resolvedParticipants,
       },
       items: itemsWithUserNames,
@@ -1101,6 +1119,9 @@ export const getImageWithReceipt = query({
           authedParticipants: v.optional(v.array(v.id("users"))),
           tipConfirmed: v.optional(v.boolean()),
           hostVenmoUsername: v.optional(v.string()),
+          hostCashAppUsername: v.optional(v.string()),
+          hostZellePhone: v.optional(v.string()),
+          hostPreferredPaymentMethod: v.optional(v.string()),
           participants: v.optional(
             v.array(
               v.object({
@@ -1237,6 +1258,9 @@ export const getImageWithReceipt = query({
           authedParticipants: receipt.authedParticipants,
           tipConfirmed: receipt.tipConfirmed,
           hostVenmoUsername: hostUser?.venmoUsername,
+          hostCashAppUsername: hostUser?.cashAppUsername,
+          hostZellePhone: hostUser?.zellePhone,
+          hostPreferredPaymentMethod: hostUser?.preferredPaymentMethod,
           participants: resolvedParticipants,
         },
         items,

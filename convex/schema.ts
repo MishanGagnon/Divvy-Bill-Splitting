@@ -17,6 +17,11 @@ export default defineSchema({
     isAnonymous: v.optional(v.boolean()),
     createdBy: v.optional(v.id("users")),
     venmoUsername: v.optional(v.string()),
+    cashAppUsername: v.optional(v.string()),
+    zellePhone: v.optional(v.string()),
+    preferredPaymentMethod: v.optional(
+      v.union(v.literal("venmo"), v.literal("cashapp"), v.literal("zelle"))
+    ),
   }).index("email", ["email"]),
   numbers: defineTable({
     value: v.number(),

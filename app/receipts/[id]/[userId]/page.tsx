@@ -9,6 +9,7 @@ import { getBaseUrl } from "@/lib/utils";
 import { toast } from "sonner";
 import { useEffect, useState, useRef } from "react";
 import { ClaimedProgressBar } from "@/components/ClaimedProgressBar";
+import { ZellePaymentModal } from "@/components/ZellePaymentModal";
 
 export default function PersonalReceiptPage() {
   const params = useParams();
@@ -20,6 +21,7 @@ export default function PersonalReceiptPage() {
   const data = useQuery(api.receipt.getReceiptWithItems, { receiptId });
 
   const [isMobile, setIsMobile] = useState(false);
+  const [isZelleModalOpen, setIsZelleModalOpen] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -203,6 +205,91 @@ export default function PersonalReceiptPage() {
     window.location.href = venmoUrl;
   };
 
+  const handleCashAppPay = () => {
+    if (!receipt.hostCashAppUsername) {
+      toast.error("Host hasn't set up their Cash App yet.");
+      return;
+    }
+
+    const amount = (personalTotalCents / 100).toFixed(2);
+    const merchant = receipt.merchantName || "Receipt";
+    const note = encodeURIComponent(`Split for ${merchant}`);
+    const cashAppUrl = `https://cash.app/$${receipt.hostCashAppUsername}/${amount}?note=${note}`;
+
+    window.open(cashAppUrl, "_blank");
+  };
+
+  const handleZellePay = () => {
+    if (!receipt.hostZellePhone) {
+      toast.error("Host hasn't set up their Zelle info yet.");
+      return;
+    }
+    setIsZelleModalOpen(true);
+  };
+
+  const renderPaymentButton = (method: string, isPreferred: boolean) => {
+    const commonStyles =
+      "w-full py-4 px-6 font-bold uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none touch-manipulation";
+    const preferredStyles =
+      "bg-ink text-paper border-2 border-ink shadow-[4px_4px_0px_rgba(0,0,0,0.1)] scale-[1.02]";
+    const normalStyles =
+      "bg-paper text-ink border-2 border-ink shadow-[4px_4px_0px_var(--ink)] opacity-70 hover:opacity-100";
+
+    const getButtonProps = () => {
+      if (method === "venmo")
+        return {
+          label: "PAY VIA VENMO",
+          handle: `@${receipt.hostVenmoUsername}`,
+          onClick: handleVenmoPay,
+        };
+      if (method === "cashapp")
+        return {
+          label: "PAY VIA CASH APP",
+          handle: `$${receipt.hostCashAppUsername}`,
+          onClick: handleCashAppPay,
+        };
+      if (method === "zelle")
+        return {
+          label: "PAY VIA ZELLE",
+          handle: receipt.hostZellePhone,
+          onClick: handleZellePay,
+        };
+      return null;
+    };
+
+    const props = getButtonProps();
+    if (!props) return null;
+
+    return (
+      <div key={method} className="flex flex-col gap-1">
+        {isPreferred && (
+          <div className="flex items-center gap-2 mb-1 justify-center">
+            <span className="text-[8px] font-black bg-ink text-paper px-2 py-0.5 tracking-tighter">
+              HOST'S PREFERRED METHOD
+            </span>
+          </div>
+        )}
+        <button
+          onClick={props.onClick}
+          className={`${commonStyles} ${isPreferred ? preferredStyles : normalStyles}`}
+        >
+          {props.label}
+        </button>
+        <p className="text-[9px] uppercase text-center opacity-50 font-bold tracking-widest mt-1">
+          {props.handle}
+        </p>
+      </div>
+    );
+  };
+
+  const availableMethods = [
+    { id: "venmo", exists: !!receipt.hostVenmoUsername },
+    { id: "cashapp", exists: !!receipt.hostCashAppUsername },
+    { id: "zelle", exists: !!receipt.hostZellePhone },
+  ].filter(m => m.exists);
+
+  const preferredMethod = receipt.hostPreferredPaymentMethod || "venmo";
+
   return (
     <div className="min-h-screen bg-background py-6 sm:py-12 px-2 sm:px-4 flex justify-center">
       <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col gap-6">
@@ -383,26 +470,31 @@ export default function PersonalReceiptPage() {
             </div>
           </div>
 
-          {/* Venmo Payment Button - Mobile Only - Hide if user is host */}
+          {/* Payment Buttons - Mobile Only - Hide if user is host */}
           {isMobile && personalTotalCents > 0 && !isHost && (
-            <div className="flex flex-col gap-3 mt-4">
-              <button
-                onClick={handleVenmoPay}
-                className="w-full bg-paper text-ink border-2 border-ink py-4 px-6 font-bold uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 hover:bg-ink hover:text-paper transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none shadow-[4px_4px_0px_var(--ink)] touch-manipulation"
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  {/* <path d="M19.704 3C20.419 3 21 3.581 21 4.296v15.408C21 20.419 20.419 21 19.704 21H4.296C3.581 21 3 20.419 3 19.704V4.296C3 3.581 3.581 3 4.296 3h15.408zm-3.115 14.212l2.607-9.638h-2.18l-1.542 6.425h-.065L14.067 7.574h-2.312l2.427 8.802c.304 1.01 1.104 1.637 2.23 1.637.787 0 1.483-.309 1.877-.801z" /> */}
-                </svg>
-               PAY HOST VIA VENMO
-              </button>
-              {receipt.hostVenmoUsername && (
-                <p className="text-[9px] uppercase text-center opacity-50 font-bold tracking-widest mt-1">
-                  Paying to: @{receipt.hostVenmoUsername}
+            <div className="flex flex-col gap-6 mt-4">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
+                  Payment Options
+                </h3>
+                <div className="flex-1 border-t border-ink/20 border-dashed"></div>
+              </div>
+
+              {availableMethods.length > 0 ? (
+                <div className="flex flex-col gap-4">
+                  {/* Render preferred method first */}
+                  {renderPaymentButton(preferredMethod, true)}
+                  
+                  {/* Render others */}
+                  {availableMethods
+                    .filter(m => m.id !== preferredMethod)
+                    .map(m => renderPaymentButton(m.id, false))
+                  }
+                </div>
+              ) : (
+                <p className="text-[10px] uppercase opacity-40 text-center italic py-4">
+                  Host hasn't set up any payment methods.
                 </p>
               )}
             </div>
@@ -449,6 +541,14 @@ export default function PersonalReceiptPage() {
             </div>
           )}
         </div>
+
+        <ZellePaymentModal
+          isOpen={isZelleModalOpen}
+          onClose={() => setIsZelleModalOpen(false)}
+          zellePhone={receipt.hostZellePhone || ""}
+          amount={formatCurrency(personalTotalCents)}
+          merchantName={receipt.merchantName || "Receipt"}
+        />
 
         <div className="dotted-line mt-auto"></div>
 

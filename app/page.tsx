@@ -8,13 +8,19 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { ImageUpload } from "@/components/ImageUpload";
-import { VenmoModal } from "@/components/VenmoModal";
+import { PaymentSetupModal } from "@/components/PaymentSetupModal";
 import { PaginatedReceiptList } from "@/components/PaginatedReceiptList";
 
 export default function Home() {
   return (
     <main className="min-h-screen py-6 sm:py-12 px-2 sm:px-4 flex justify-center bg-background">
-      <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col gap-8">
+      <div className="w-full max-w-lg receipt-paper jagged-top jagged-bottom p-6 sm:p-8 flex flex-col gap-8 relative">
+        <Link
+          href="/profile"
+          className="absolute top-6 right-6 text-[10px] font-bold uppercase border-2 border-ink px-4 py-2 hover:bg-ink/5 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none shadow-[3px_3px_0px_var(--ink)] transition-all whitespace-nowrap bg-paper z-10"
+        >
+          Profile
+        </Link>
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-3 grayscale contrast-200">
             <Image src="/convex.svg" alt="Convex Logo" width={32} height={32} />
@@ -44,8 +50,8 @@ export default function Home() {
 
         <div className="dotted-line mt-auto"></div>
         <div className="flex justify-between items-center px-2">
-          <p className="text-xs uppercase tracking-tighter opacity-70">
-            {new Date().toLocaleString()}
+          <p className="text-[10px] uppercase tracking-widest opacity-30 font-bold">
+            v1.0.0
           </p>
           <SignOutButton />
         </div>
@@ -112,7 +118,7 @@ function Content() {
       ) : (
         <StartSplitSection 
           onBack={() => setSelectedAction(null)} 
-          hasVenmo={!!user?.venmoUsername}
+          hasPaymentMethod={!!(user?.venmoUsername || user?.cashAppUsername || user?.zellePhone)}
         />
       )}
 
@@ -258,12 +264,12 @@ function JoinSection({ onBack }: { onBack: () => void }) {
   );
 }
 
-function StartSplitSection({ onBack, hasVenmo }: { onBack: () => void; hasVenmo: boolean }) {
-  const [isVenmoModalOpen, setIsVenmoModalOpen] = useState(!hasVenmo);
+function StartSplitSection({ onBack, hasPaymentMethod }: { onBack: () => void; hasPaymentMethod: boolean }) {
+  const [isSetupModalOpen, setIsSetupModalOpen] = useState(!hasPaymentMethod);
 
-  // If hasVenmo becomes true (from a background refetch), close the modal
-  if (hasVenmo && isVenmoModalOpen) {
-    setIsVenmoModalOpen(false);
+  // If hasPaymentMethod becomes true (from a background refetch), close the modal
+  if (hasPaymentMethod && isSetupModalOpen) {
+    setIsSetupModalOpen(false);
   }
 
   return (
@@ -284,34 +290,33 @@ function StartSplitSection({ onBack, hasVenmo }: { onBack: () => void; hasVenmo:
         </button>
       </div>
       
-      {!hasVenmo ? (
+      {!hasPaymentMethod ? (
         <div className="flex flex-col gap-6 items-center py-10 border-2 border-dashed border-ink/10">
           <div className="text-center space-y-2 px-4">
             <p className="text-[10px] uppercase font-bold tracking-widest opacity-70">
               Setup Required
             </p>
             <p className="text-[10px] uppercase opacity-50 leading-relaxed italic">
-              "You'll need to set your Venmo handle before you can start receiving payments from this split."
+              "You'll need to set your preferred payment method before you can start receiving payments from this split."
             </p>
           </div>
           <button
-            onClick={() => setIsVenmoModalOpen(true)}
+            onClick={() => setIsSetupModalOpen(true)}
             className="bg-ink text-paper px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:opacity-90 transition-all shadow-md whitespace-nowrap"
           >
-            [ ADD VENMO USERNAME ]
+            [ GO TO SETUP ]
           </button>
         </div>
       ) : (
         <ImageUpload />
       )}
 
-      <VenmoModal 
-        isOpen={isVenmoModalOpen} 
+      <PaymentSetupModal 
+        isOpen={isSetupModalOpen} 
         onClose={() => {
-          setIsVenmoModalOpen(false);
-          if (!hasVenmo) onBack(); // Go back if they cancel without setting it
+          setIsSetupModalOpen(false);
+          if (!hasPaymentMethod) onBack(); // Go back if they cancel without setting it
         }}
-        onSuccess={() => setIsVenmoModalOpen(false)}
       />
     </div>
   );

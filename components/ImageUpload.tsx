@@ -15,6 +15,7 @@ export function ImageUpload() {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const generateUploadUrl = useMutation(api.image.generateUploadUrl);
@@ -22,18 +23,52 @@ export function ImageUpload() {
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) processFile(file);
+    if (file) void processFile(file);
   };
 
-  const processFile = (file: File) => {
+  const processFile = async (file: File) => {
     if (file.size > 10 * 1024 * 1024) {
       toast.error("File size exceeds 10MB limit");
       return;
     }
-    setSelectedFile(file);
+
+    let fileToProcess = file;
+
+    // Handle HEIC conversion
+    const isHeic = 
+      file.type === "image/heic" || 
+      file.type === "image/heif" ||
+      file.name.toLowerCase().endsWith(".heic") || 
+      file.name.toLowerCase().endsWith(".heif");
+
+    if (isHeic) {
+      setIsConverting(true);
+      try {
+        const heic2any = (await import("heic2any")).default;
+        const convertedBlob = await heic2any({
+          blob: file,
+          toType: "image/jpeg",
+          quality: 0.8,
+        });
+        
+        const blobArray = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+        fileToProcess = new File([blobArray], file.name.replace(/\.(heic|heif)$/i, ".jpg"), {
+          type: "image/jpeg",
+        });
+      } catch (error) {
+        console.error("HEIC conversion failed:", error);
+        toast.error("Failed to convert HEIC image. Please try a different format.");
+        setIsConverting(false);
+        return;
+      } finally {
+        setIsConverting(false);
+      }
+    }
+
+    setSelectedFile(fileToProcess);
     const reader = new FileReader();
     reader.onload = (event) => setSelectedImage(event.target?.result as string);
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(fileToProcess);
   };
 
   const onDragOver = (e: DragEvent<HTMLDivElement>) => {
@@ -47,7 +82,7 @@ export function ImageUpload() {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) processFile(file);
+    if (file) void processFile(file);
   };
 
   const clearImage = () => {
@@ -124,17 +159,28 @@ export function ImageUpload() {
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
-              accept="image/*"
+              accept="image/*,.heic,.heif"
               className="hidden"
             />
             <div className="flex flex-col items-center gap-2 text-center opacity-50">
-              <span className="text-2xl">+</span>
-              <p className="text-xs uppercase font-bold tracking-widest">
-                Drop Receipt or Click to Browse
-              </p>
-              <p className="text-[10px] uppercase tracking-tighter">
-                MAX 10MB (PNG, JPG, WEBP)
-              </p>
+              {isConverting ? (
+                <>
+                  <div className="animate-spin text-2xl">...</div>
+                  <p className="text-xs uppercase font-bold tracking-widest">
+                    Converting HEIC...
+                  </p>
+                </>
+              ) : (
+                <>
+                  <span className="text-2xl">+</span>
+                  <p className="text-xs uppercase font-bold tracking-widest">
+                    Drop Receipt or Click to Browse
+                  </p>
+                  <p className="text-[10px] uppercase tracking-tighter">
+                    MAX 10MB (PNG, JPG, WEBP, HEIC)
+                  </p>
+                </>
+              )}
             </div>
           </div>
         ) : (
