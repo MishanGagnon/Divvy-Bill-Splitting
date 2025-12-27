@@ -57,6 +57,7 @@ export default function ReceiptDetailPage() {
   const [isConfirmingTip, setIsConfirmingTip] = useState(false);
   const [isAddingGuest, setIsAddingGuest] = useState(false);
   const [newGuestName, setNewGuestName] = useState("");
+  const [isParticipantsExpanded, setIsParticipantsExpanded] = useState(false);
   const [isRemovingGuest, setIsRemovingGuest] = useState(false);
   const [guestToRemove, setGuestToRemove] = useState<{
     userId: Id<"users">;
@@ -561,39 +562,75 @@ export default function ReceiptDetailPage() {
                 </h3>
                 <div className="flex-1 border-t border-ink/20 border-dashed"></div>
               </div>
-              <div className="flex flex-wrap justify-center gap-2">
-                {receipt.participants.map((p, idx) => (
-                  <div key={idx} className="group relative">
-                    <div
-                      title={p.userName}
-                      className={`text-[9px] font-black tracking-tighter px-2 py-0.5 border-2 whitespace-nowrap transition-all ${
-                        p.userId === user?._id
-                          ? "border-ink bg-ink text-paper"
-                          : p.isAnonymous
-                            ? "border-dotted border-ink/40 text-ink/60"
-                            : "border-ink/20 text-ink/40"
-                      }`}
-                    >
-                      {getInitials(p.userName)}
-                    </div>
-                    {/* Guest Link Shortcut for Host */}
-                    {isHost && p.userId !== user?._id && (
-                      <button
-                        onClick={() => {
-                          const url = `${getBaseUrl()}/receipts/${receiptId}/${p.userId}`;
-                          navigator.clipboard.writeText(url);
-                          toast.success(`Statement link for ${p.userName} copied!`);
-                        }}
-                        className="absolute -top-7 left-1/2 -translate-x-1/2 hidden group-hover:block bg-ink text-paper text-[8px] py-1 px-2 whitespace-nowrap z-10 shadow-md uppercase font-bold"
-                      >
-                        Copy Guest Link
-                      </button>
-                    )}
-                  </div>
-                ))}
+              <div className="flex items-center justify-between gap-4">
+                {/* Participant Icons - Left Side */}
+                <div className="flex flex-wrap gap-2 flex-1">
+                  {(() => {
+                    const PARTICIPANT_THRESHOLD = 5; // Show collapsed view if more than this many participants
+                    const VISIBLE_COUNT = 4; // Show first N participants when collapsed
+                    const shouldCollapse = receipt.participants.length > PARTICIPANT_THRESHOLD && !isParticipantsExpanded;
+                    const visibleParticipants = shouldCollapse
+                      ? receipt.participants.slice(0, VISIBLE_COUNT)
+                      : receipt.participants;
+                    const remainingCount = receipt.participants.length - VISIBLE_COUNT;
 
+                    return (
+                      <>
+                        {visibleParticipants.map((p, idx) => (
+                          <div key={idx} className="group relative">
+                            <div
+                              title={p.userName}
+                              className={`text-[9px] font-black tracking-tighter px-2 py-0.5 border-2 whitespace-nowrap transition-all ${
+                                p.userId === user?._id
+                                  ? "border-ink bg-ink text-paper"
+                                  : p.isAnonymous
+                                    ? "border-dotted border-ink/40 text-ink/60"
+                                    : "border-ink/20 text-ink/40"
+                              }`}
+                            >
+                              {getInitials(p.userName)}
+                            </div>
+                            {/* Guest Link Shortcut for Host */}
+                            {isHost && p.userId !== user?._id && (
+                              <button
+                                onClick={() => {
+                                  const url = `${getBaseUrl()}/receipts/${receiptId}/${p.userId}`;
+                                  navigator.clipboard.writeText(url);
+                                  toast.success(`Statement link for ${p.userName} copied!`);
+                                }}
+                                className="absolute -top-7 left-1/2 -translate-x-1/2 hidden group-hover:block bg-ink text-paper text-[8px] py-1 px-2 whitespace-nowrap z-10 shadow-md uppercase font-bold"
+                              >
+                                Copy Guest Link
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        {shouldCollapse && (
+                          <button
+                            onClick={() => setIsParticipantsExpanded(true)}
+                            className="text-[9px] font-black tracking-tighter px-2 py-0.5 border-2 border-dashed border-ink/40 text-ink/60 hover:border-ink/60 hover:text-ink transition-all cursor-pointer"
+                            title={`Show ${remainingCount} more participants`}
+                          >
+                            +{remainingCount}
+                          </button>
+                        )}
+                        {isParticipantsExpanded && receipt.participants.length > PARTICIPANT_THRESHOLD && (
+                          <button
+                            onClick={() => setIsParticipantsExpanded(false)}
+                            className="text-[9px] font-black tracking-tighter px-2 py-0.5 border-2 border-dashed border-ink/40 text-ink/60 hover:border-ink/60 hover:text-ink transition-all cursor-pointer"
+                            title="Collapse participant list"
+                          >
+                            −
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Add/Remove Buttons - Right Side */}
                 {isHost && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {isAddingGuest ? (
                       <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
                         <input
@@ -620,7 +657,7 @@ export default function ReceiptDetailPage() {
                             }
                           }}
                           placeholder="GUEST NAME"
-                          className="text-[9px] font-black tracking-tighter px-2 py-1 border-2 border-ink bg-transparent outline-none w-24 uppercase placeholder:opacity-30"
+                          className="text-[9px] font-black tracking-tighter px-3 py-2 border-2 border-ink bg-transparent outline-none uppercase placeholder:opacity-30 w-32"
                         />
                         <button
                           onClick={async () => {
@@ -638,7 +675,8 @@ export default function ReceiptDetailPage() {
                               }
                             }
                           }}
-                          className="text-[9px] font-black tracking-tighter px-2 py-0.5 border-2 border-ink bg-ink text-paper uppercase"
+                          disabled={!newGuestName.trim()}
+                          className="text-[9px] font-black tracking-tighter px-4 py-2 border-2 border-ink bg-ink text-paper uppercase hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           ADD
                         </button>
@@ -647,37 +685,42 @@ export default function ReceiptDetailPage() {
                             setIsAddingGuest(false);
                             setNewGuestName("");
                           }}
-                          className="text-[9px] font-black tracking-tighter px-2 py-0.5 border-2 border-ink/20 text-ink/40 uppercase"
+                          className="text-[9px] font-black tracking-tighter px-3 py-2 border-2 border-ink/30 text-ink/60 hover:border-ink/50 hover:text-ink uppercase transition-colors"
                         >
-                          ✕
+                          CANCEL
                         </button>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => setIsAddingGuest(true)}
-                        className="text-[9px] font-black tracking-tighter px-2 py-0.5 border-2 border-dashed border-ink/40 text-ink/40 hover:border-ink hover:text-ink transition-all uppercase"
-                      >
-                        + Add Guest
-                      </button>
+                      <>
+                        <button
+                          onClick={() => setIsAddingGuest(true)}
+                          className="text-[10px] font-black tracking-tighter w-6 h-6 border-2 border-green-500/60 bg-green-500/30 text-green-700 hover:bg-green-500/50 transition-colors flex items-center justify-center"
+                          aria-label="Add guest"
+                        >
+                          +
+                        </button>
+                        {receipt.participants.some(
+                          (p) =>
+                            p.isAnonymous &&
+                            (isHost || (user && p.createdBy === user._id)),
+                        ) && (
+                          <button
+                            onClick={() => setIsRemovingGuest(true)}
+                            className="text-[10px] font-black tracking-tighter w-6 h-6 border-2 border-red-500/60 bg-red-500/30 text-red-700 hover:bg-red-500/50 transition-colors flex items-center justify-center"
+                            aria-label="Remove guest"
+                          >
+                            −
+                          </button>
+                        )}
+                      </>
                     )}
+                  </div>
+                )}
+              </div>
 
-                    {/* Remove Guest Button */}
-                    {receipt.participants.some(
-                      (p) =>
-                        p.isAnonymous &&
-                        (isHost || (user && p.createdBy === user._id)),
-                    ) && (
-                      <button
-                        onClick={() => setIsRemovingGuest(true)}
-                        className="text-[9px] font-black tracking-tighter px-2 py-0.5 border-2 border-dashed border-red-600/40 text-red-600/40 hover:border-red-600 hover:text-red-600 transition-all uppercase"
-                      >
-                        - Remove Guest
-                      </button>
-                    )}
-
-                    {/* Remove Guest Modal */}
-                    {isRemovingGuest && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+              {/* Remove Guest Modal */}
+              {isRemovingGuest && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
                         <div className="w-full max-w-sm receipt-paper jagged-top jagged-bottom p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
                           <div className="flex justify-between items-center border-b-2 border-ink/10 pb-3 mb-4">
                             <h3 className="text-xs font-black uppercase tracking-widest">
@@ -773,9 +816,6 @@ export default function ReceiptDetailPage() {
                         </div>
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
             </div>
           )}
         </div>
@@ -1268,8 +1308,8 @@ export default function ReceiptDetailPage() {
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                       </svg>
                       <p className="text-[10px] uppercase font-bold leading-relaxed">
-                        [ ATTENTION: PRICE MISMATCH ]
-                      </p>
+                    [ ATTENTION: PRICE MISMATCH ]
+                  </p>
                     </div>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -1288,15 +1328,15 @@ export default function ReceiptDetailPage() {
                   </button>
                   {!isPriceMismatchCollapsed && (
                     <div className="px-4 pb-4 text-center">
-                      <p className="text-[9px] uppercase font-medium text-red-600/70 mt-1">
-                        Sum of items ({formatCurrency(totalSubtotalCents)}) + Tax ({formatCurrency(receipt.taxCents)}) + Tip ({formatCurrency(receipt.tipCents)}) = **{formatCurrency(calculatedTotalCents)}**
-                      </p>
-                      <p className="text-[9px] uppercase font-bold text-red-600 mt-2">
-                        Does not equal receipt total: **{formatCurrency(receipt.totalCents)}**
-                      </p>
-                      <p className="text-[8px] uppercase font-bold text-red-600/50 mt-1">
-                        Please check and edit prices to match.
-                      </p>
+                  <p className="text-[9px] uppercase font-medium text-red-600/70 mt-1">
+                    Sum of items ({formatCurrency(totalSubtotalCents)}) + Tax ({formatCurrency(receipt.taxCents)}) + Tip ({formatCurrency(receipt.tipCents)}) = **{formatCurrency(calculatedTotalCents)}**
+                  </p>
+                  <p className="text-[9px] uppercase font-bold text-red-600 mt-2">
+                    Does not equal receipt total: **{formatCurrency(receipt.totalCents)}**
+                  </p>
+                  <p className="text-[8px] uppercase font-bold text-red-600/50 mt-1">
+                    Please check and edit prices to match.
+                  </p>
                     </div>
                   )}
                 </div>
@@ -1611,7 +1651,7 @@ export default function ReceiptDetailPage() {
                           <span className="text-[10px] uppercase opacity-40">
                             Unclaimed Items
                           </span>
-                          <span className="text-[10px] font-mono opacity-40">
+                          <span className="text-[10px] font-mono opacity-40 underline">
                             {formatCurrency(totalSubtotalCents - claimedAmountCents)}
                           </span>
                         </div>
