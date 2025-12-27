@@ -229,29 +229,22 @@ export default function PersonalReceiptPage() {
   };
 
   const renderPaymentButton = (method: string, isPreferred: boolean) => {
-    const commonStyles =
-      "w-full py-4 px-6 font-bold uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none touch-manipulation";
-    const preferredStyles =
-      "bg-ink text-paper border-2 border-ink shadow-[4px_4px_0px_rgba(0,0,0,0.1)] scale-[1.02]";
-    const normalStyles =
-      "bg-paper text-ink border-2 border-ink shadow-[4px_4px_0px_var(--ink)] opacity-70 hover:opacity-100";
-
     const getButtonProps = () => {
       if (method === "venmo")
         return {
-          label: "PAY VIA VENMO",
+          label: "Venmo",
           handle: `@${receipt.hostVenmoUsername}`,
           onClick: handleVenmoPay,
         };
       if (method === "cashapp")
         return {
-          label: "PAY VIA CASH APP",
+          label: "Cash App",
           handle: `$${receipt.hostCashAppUsername}`,
           onClick: handleCashAppPay,
         };
       if (method === "zelle")
         return {
-          label: "PAY VIA ZELLE",
+          label: "Zelle",
           handle: receipt.hostZellePhone,
           onClick: handleZellePay,
         };
@@ -261,24 +254,51 @@ export default function PersonalReceiptPage() {
     const props = getButtonProps();
     if (!props) return null;
 
+    const baseButtonStyles =
+      "w-full rounded-lg border-2 transition-all active:scale-[0.98] touch-manipulation flex items-center justify-between px-4 py-3 gap-3";
+    const preferredButtonStyles = isPreferred
+      ? "bg-paper border-ink shadow-md scale-[1.02]"
+      : "bg-paper/50 border-ink/30 hover:bg-paper hover:border-ink/50";
+
     return (
-      <div key={method} className="flex flex-col gap-1">
+      <div key={method} className="flex flex-col gap-2">
         {isPreferred && (
-          <div className="flex items-center gap-2 mb-1 justify-center">
-            <span className="text-[8px] font-black bg-ink text-paper px-2 py-0.5 tracking-tighter">
+          <div className="flex items-center gap-2 justify-start">
+            <span className="text-[8px] font-black bg-ink text-paper px-2 py-0.5 tracking-tighter rounded">
               HOST'S PREFERRED METHOD
             </span>
           </div>
         )}
         <button
           onClick={props.onClick}
-          className={`${commonStyles} ${isPreferred ? preferredStyles : normalStyles}`}
+          className={`${baseButtonStyles} ${preferredButtonStyles}`}
         >
-          {props.label}
+          <div className="flex flex-col items-start flex-1 min-w-0 gap-1">
+            <span className="text-base font-bold text-ink uppercase tracking-wide">
+              {props.label.toUpperCase()}
+            </span>
+            <span className="text-[10px] text-ink/70 font-normal uppercase tracking-wide">
+              PAY TO HOST's {props.label.toUpperCase()} ID:{" "}
+              <span className="font-extrabold underline text-ink/90">{props.handle}</span>
+            </span>
+          </div>
+          <div className="flex-shrink-0">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-ink/40"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </div>
         </button>
-        <p className="text-[9px] uppercase text-center opacity-50 font-bold tracking-widest mt-1">
-          {props.handle}
-        </p>
       </div>
     );
   };
@@ -437,16 +457,16 @@ export default function PersonalReceiptPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* <div className="flex items-center gap-2">
             <div className="flex-1 border-t border-ink/20 border-dashed"></div>
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
               Summary
             </h3>
             <div className="flex-1 border-t border-ink/20 border-dashed"></div>
-          </div>
+          </div> */}
 
           {/* Summary */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 mt-4">
             <div className="receipt-item-row text-xs uppercase opacity-70">
               <span>Your Subtotal</span>
               <span>{formatCurrency(personalSubtotalCents)}</span>
