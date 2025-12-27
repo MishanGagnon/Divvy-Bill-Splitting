@@ -45,6 +45,7 @@ export default function PersonalReceiptPage() {
     if (currency === "GBP") return `£${amount}`;
     if (currency === "CAD") return `C$${amount}`;
     if (currency === "AUD") return `A$${amount}`;
+    if (currency === "INR") return `₹${amount}`;
 
     return `${amount} ${currency}`;
   };
