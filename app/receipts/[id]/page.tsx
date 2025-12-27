@@ -528,18 +528,11 @@ export default function ReceiptDetailPage() {
               {receipt.merchantName || "Transaction Details"}
             </h1>
             <div className="flex flex-wrap justify-center items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase tracking-widest opacity-50">
-              {receipt.merchantType && <span>{receipt.merchantType}</span>}
-
-              {receipt.date && (
-                <>
-                  <span className="opacity-30">•</span>
-                  <span>{receipt.date}</span>
-                </>
-              )}
+              {receipt.date && <span>{receipt.date}</span>}
 
               {isParsed && shareCode && (
                 <>
-                  <span className="opacity-30">•</span>
+                  {receipt.date && <span className="opacity-30">•</span>}
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(shareCode);
@@ -558,7 +551,7 @@ export default function ReceiptDetailPage() {
           </div>
 
           {isParsed && receipt.participants && receipt.participants.length > 0 && (
-            <div className="w-full flex flex-col gap-3 pt-2">
+            <div className="w-full flex flex-col gap-3 pt-4">
               <div className="flex items-center gap-2">
                 <div className="flex-1 border-t border-ink/20 border-dashed"></div>
                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">
@@ -928,7 +921,7 @@ export default function ReceiptDetailPage() {
             )}
 
             {/* Items */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 pt-4">
               <div className="flex items-center gap-2">
                 <div className="flex-1 border-t border-ink/20 border-dashed"></div>
                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-center whitespace-nowrap opacity-70">

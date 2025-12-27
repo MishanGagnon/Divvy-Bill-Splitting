@@ -324,13 +324,6 @@ export default function PersonalReceiptPage() {
               <span className="text-ink font-black">{targetUserName}</span>
               <span className="opacity-30">•</span>
 
-              {receipt.merchantType && (
-                <>
-                  <span>{receipt.merchantType}</span>
-                  <span className="opacity-30">•</span>
-                </>
-              )}
-
               {receipt.date && <span>{receipt.date}</span>}
             </div>
           </div>
