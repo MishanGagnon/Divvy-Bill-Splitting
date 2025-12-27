@@ -23,6 +23,7 @@ export default function PersonalReceiptPage() {
 
   const [isMobile, setIsMobile] = useState(false);
   const [isZelleModalOpen, setIsZelleModalOpen] = useState(false);
+  const [zelleUsdAmount, setZelleUsdAmount] = useState<string>("");
 
   useEffect(() => {
     const checkMobile = () => {
@@ -49,6 +50,32 @@ export default function PersonalReceiptPage() {
     if (currency === "INR") return `₹${amount}`;
 
     return `${amount} ${currency}`;
+  };
+
+  // Convert amount from receipt currency to USD
+  const convertToUSD = async (amountCents: number, fromCurrency: string): Promise<number> => {
+    if (fromCurrency === "USD" || !fromCurrency) {
+      return amountCents;
+    }
+
+    try {
+      // Use ExchangeRate-API free endpoint (no API key required for basic usage)
+      const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${fromCurrency}`);
+      const data = await response.json();
+      const exchangeRate = data.rates?.USD;
+      
+      if (!exchangeRate) {
+        console.warn(`Exchange rate not found for ${fromCurrency}, using original amount`);
+        return amountCents;
+      }
+
+      // Convert: amount in cents * exchange rate
+      return Math.round(amountCents * exchangeRate);
+    } catch (error) {
+      console.error("Currency conversion error:", error);
+      toast.error("Failed to convert currency. Using original amount.");
+      return amountCents;
+    }
   };
 
   if (data === undefined || user === undefined) {
@@ -193,27 +220,31 @@ export default function PersonalReceiptPage() {
   // Calculate total subtotal (sum of all items including modifiers) - same as totalReceiptSubtotalCents
   const totalSubtotalCents = totalReceiptSubtotalCents;
 
-  const handleVenmoPay = () => {
+  const handleVenmoPay = async () => {
     if (!receipt.hostVenmoUsername) {
       toast.error("Host hasn't set up their Venmo username yet.");
       return;
     }
 
-    const amount = (personalTotalCents / 100).toFixed(2);
+    const receiptCurrency = receipt.currency || "USD";
+    const usdAmountCents = await convertToUSD(personalTotalCents, receiptCurrency);
+    const amount = (usdAmountCents / 100).toFixed(2);
     const merchant = receipt.merchantName || "Receipt";
     const note = encodeURIComponent(`Split for ${merchant}`);
     const venmoUrl = `venmo://paycharge?txn=pay&recipients=${receipt.hostVenmoUsername}&amount=${amount}&note=${note}`;
-
+    
     window.location.href = venmoUrl;
   };
 
-  const handleCashAppPay = () => {
+  const handleCashAppPay = async () => {
     if (!receipt.hostCashAppUsername) {
       toast.error("Host hasn't set up their Cash App yet.");
       return;
     }
 
-    const amount = (personalTotalCents / 100).toFixed(2);
+    const receiptCurrency = receipt.currency || "USD";
+    const usdAmountCents = await convertToUSD(personalTotalCents, receiptCurrency);
+    const amount = (usdAmountCents / 100).toFixed(2);
     const merchant = receipt.merchantName || "Receipt";
     const note = encodeURIComponent(`Split for ${merchant}`);
     const cashAppUrl = `https://cash.app/$${receipt.hostCashAppUsername}/${amount}?note=${note}`;
@@ -221,11 +252,17 @@ export default function PersonalReceiptPage() {
     window.open(cashAppUrl, "_blank");
   };
 
-  const handleZellePay = () => {
+  const handleZellePay = async () => {
     if (!receipt.hostZellePhone) {
       toast.error("Host hasn't set up their Zelle info yet.");
       return;
     }
+    
+    // Convert to USD before opening modal
+    const receiptCurrency = receipt.currency || "USD";
+    const usdAmountCents = await convertToUSD(personalTotalCents, receiptCurrency);
+    const usdAmount = `$${(usdAmountCents / 100).toFixed(2)}`;
+    setZelleUsdAmount(usdAmount);
     setIsZelleModalOpen(true);
   };
 
@@ -575,7 +612,7 @@ export default function PersonalReceiptPage() {
           isOpen={isZelleModalOpen}
           onClose={() => setIsZelleModalOpen(false)}
           zellePhone={receipt.hostZellePhone || ""}
-          amount={formatCurrency(personalTotalCents)}
+          amount={zelleUsdAmount || formatCurrency(personalTotalCents)}
           merchantName={receipt.merchantName || "Receipt"}
         />
 
