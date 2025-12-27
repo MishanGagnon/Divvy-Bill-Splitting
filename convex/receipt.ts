@@ -460,6 +460,72 @@ export const toggleParticipantClaim = mutation({
 });
 
 /**
+ * Mutation to split an item among all participants.
+ */
+export const splitItemWithAll = mutation({
+  args: {
+    itemId: v.id("receiptItems"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+
+    const item = await ctx.db.get(args.itemId);
+    if (!item) {
+      throw new Error("Item not found");
+    }
+
+    const receipt = await ctx.db.get(item.receiptId);
+    if (!receipt) {
+      throw new Error("Receipt not found");
+    }
+
+    // Get all participant IDs (host + authed participants)
+    const participantIds = new Set<Id<"users">>();
+    participantIds.add(receipt.hostUserId);
+    receipt.authedParticipants?.forEach((id) => participantIds.add(id));
+    const allParticipantIds = Array.from(participantIds);
+
+    const currentlyClaimedBy = item.claimedBy || [];
+    const isEveryoneSelected =
+      allParticipantIds.length > 0 &&
+      allParticipantIds.every((id) => currentlyClaimedBy.includes(id));
+
+    if (isEveryoneSelected) {
+      // Toggle off: clear all claims
+      await ctx.db.patch(args.itemId, {
+        claimedBy: undefined,
+      });
+    } else {
+      // Toggle on: set claimedBy to all participants
+      await ctx.db.patch(args.itemId, {
+        claimedBy: allParticipantIds,
+      });
+
+      // Ensure membership for all participants
+      for (const pId of allParticipantIds) {
+        const existingMembership = await ctx.db
+          .query("memberships")
+          .withIndex("by_user_receipt", (q) =>
+            q.eq("userId", pId).eq("receiptId", item.receiptId),
+          )
+          .unique();
+        if (!existingMembership) {
+          await ctx.db.insert("memberships", {
+            userId: pId,
+            receiptId: item.receiptId,
+            joinedAt: Date.now(),
+            merchantName: receipt.merchantName || "Unknown Merchant",
+          });
+        }
+      }
+    }
+  },
+});
+
+/**
  * Internal mutation to mark a receipt as failed.
  */
 export const markReceiptFailed = internalMutation({

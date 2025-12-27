@@ -63,3 +63,4 @@ export default function JoinCodePage() {
 
   return null;
 }
+

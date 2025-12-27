@@ -40,6 +40,7 @@ export default function ReceiptDetailPage() {
   const removeGuest = useMutation(api.receipt.removeGuestParticipant);
   const getOrCreateShareCode = useMutation(api.share.getOrCreateShareCode);
   const confirmTip = useMutation(api.receipt.confirmTip);
+  const splitWithAll = useMutation(api.receipt.splitItemWithAll);
 
   const [isJoining, setIsJoining] = useState(false);
   const [shareCode, setShareCode] = useState<string | null>(null);
@@ -1036,41 +1037,72 @@ export default function ReceiptDetailPage() {
 
                         {/* Split Selector UI (Always indented) */}
                         {splittingItemId === item._id && (
-                          <div className="mt-2 ml-9 p-3 border-2 border-dashed border-ink/20 flex flex-col gap-3 bg-paper">
-                            <div className="flex justify-between items-center">
-                              <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">
-                                {isHost
-                                  ? "Assign this item to:"
-                                  : "Split With Participants:"}
+                          <div className="mt-2 ml-9 p-4 border-2 border-dashed border-ink/20 flex flex-col gap-4 bg-paper/50 backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                            {/* Header Row: Label + Split All */}
+                            <div className="flex justify-between items-center gap-4">
+                              <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40">
+                                {isHost ? "ASSIGN TO:" : "SPLIT WITH:"}
                               </p>
+                              {receipt.participants &&
+                                receipt.participants.length > 1 && (
+                                  <button
+                                    onClick={() =>
+                                      splitWithAll({ itemId: item._id })
+                                    }
+                                    className={`text-[9px] font-black tracking-widest px-3 py-1.5 border-2 transition-all ${
+                                      item.claimedBy?.length ===
+                                      receipt.participants.length
+                                        ? "border-ink bg-ink text-paper"
+                                        : "border-ink/20 text-ink/40 hover:border-ink/60 hover:text-ink/80 bg-paper"
+                                    }`}
+                                  >
+                                    SPLIT WITH ALL
+                                  </button>
+                                )}
+                            </div>
+
+                            {/* Participant Grid */}
+                            <div className="grid grid-cols-2 gap-2">
+                              {receipt.participants?.map((p) => {
+                                const isSelected = item.claimedBy?.some(
+                                  (c) => c.userId === p.userId,
+                                );
+                                return (
+                                  <button
+                                    key={p.userId}
+                                    onClick={() =>
+                                      toggleParticipantClaim({
+                                        itemId: item._id,
+                                        userId: p.userId,
+                                      })
+                                    }
+                                    className={`text-[10px] font-bold tracking-tight px-3 py-2 border-2 transition-all flex justify-between items-center text-left min-h-[40px] ${
+                                      isSelected
+                                        ? "border-ink bg-ink text-paper"
+                                        : "border-ink/10 text-ink/40 hover:border-ink/40 hover:text-ink/60 bg-paper/30"
+                                    }`}
+                                  >
+                                    <span className="truncate pr-2">
+                                      {p.userName}
+                                    </span>
+                                    {isSelected && (
+                                      <span className="flex-shrink-0 text-[11px]">
+                                        ✓
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {/* Footer Row: Done Button */}
+                            <div className="flex justify-end border-t border-ink/10 pt-3 mt-1">
                               <button
                                 onClick={() => setSplittingItemId(null)}
-                                className="text-[11px] font-black uppercase underline hover:opacity-70"
+                                className="text-[11px] font-black uppercase underline decoration-2 underline-offset-4 hover:opacity-70 transition-opacity"
                               >
                                 DONE
                               </button>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {receipt.participants?.map((p) => (
-                                <button
-                                  key={p.userId}
-                                  onClick={() =>
-                                    toggleParticipantClaim({
-                                      itemId: item._id,
-                                      userId: p.userId,
-                                    })
-                                  }
-                                  className={`text-[11px] font-black tracking-tighter px-2 py-1 border-2 transition-all ${
-                                    item.claimedBy?.some(
-                                      (c) => c.userId === p.userId,
-                                    )
-                                      ? "border-ink bg-ink text-paper"
-                                      : "border-ink/20 text-ink/40 hover:border-ink/40 hover:text-ink/60"
-                                  }`}
-                                >
-                                  {p.userName}
-                                </button>
-                              ))}
                             </div>
                           </div>
                         )}
